@@ -1,4 +1,4 @@
-import { Stores } from './db.js';
+import { Stores } from "./db.js";
 
 const STORE_NAME = Stores.CLICKS;
 const STATS_STORE = Stores.CLICK_STATS;
@@ -33,15 +33,15 @@ export async function getEventStats(db) {
           clicks: 0,
           mousedowns: 0,
           mouseups: 0,
-          avgDuration: 0
+          avgDuration: 0,
         };
-        
+
         if (stats.totalDuration > 0 && stats.durationCount > 0) {
           stats.avgDuration = stats.totalDuration / stats.durationCount;
         } else {
           stats.avgDuration = 0;
         }
-        
+
         resolve(stats);
       };
       request.onerror = () => reject(request.error);
@@ -57,14 +57,13 @@ export async function clearAllEvents(db) {
     const transaction = db.transaction([STORE_NAME, STATS_STORE], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
     const statsStore = transaction.objectStore(STATS_STORE);
-    
+
     const request = store.clear();
     await new Promise((resolve, reject) => {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
-    
-    // Reset stats
+
     await new Promise((resolve, reject) => {
       const resetStats = {
         id: STATS_ID,
@@ -74,13 +73,13 @@ export async function clearAllEvents(db) {
         mouseups: 0,
         totalDuration: 0,
         durationCount: 0,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
       const putRequest = statsStore.put(resetStats);
       putRequest.onsuccess = () => resolve();
       putRequest.onerror = () => reject(putRequest.error);
     });
-    
+
     return true;
   } catch (error) {
     console.error("User Monitor: Error clearing events:", error);

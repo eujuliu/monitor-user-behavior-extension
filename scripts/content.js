@@ -1,22 +1,67 @@
 const mousedownTimes = new Map();
+const SESSION_ID = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+function getPageInfo() {
+  return {
+    url: window.location.href,
+    domain: window.location.hostname,
+    title: document.title,
+    sessionId: SESSION_ID,
+  };
+}
 
 function getElementInfo(element) {
-  const rect = element.getBoundingClientRect();
-  const computedStyle = window.getComputedStyle(element);
+  const meaningfulTags = [
+    "button",
+    "a",
+    "label",
+    "input",
+    "textarea",
+    "select",
+  ];
+  let targetElement = element;
+
+  if (!element.textContent || element.textContent.trim().length === 0) {
+    let parent = element.parentElement;
+    while (parent && parent !== document.body) {
+      const tag = parent.tagName?.toLowerCase();
+      if (
+        meaningfulTags.includes(tag) ||
+        parent.textContent?.trim().length > 0
+      ) {
+        targetElement = parent;
+        break;
+      }
+      parent = parent.parentElement;
+    }
+  }
+
+  const rect = targetElement.getBoundingClientRect();
+  const computedStyle = window.getComputedStyle(targetElement);
+  const text = targetElement.textContent?.trim().substring(0, 100) || null;
+
+  let elementText = text;
+  if (targetElement.tagName?.toLowerCase() === "input") {
+    elementText =
+      targetElement.value ||
+      targetElement.placeholder ||
+      text ||
+      `[${targetElement.type}]`;
+  }
 
   return {
-    tag: element.tagName?.toLowerCase() || 'unknown',
-    text: element.textContent?.substring(0, 100) || null,
+    tag: targetElement.tagName?.toLowerCase() || "unknown",
+    text: elementText,
     position: {
       x: Math.round(rect.left + window.scrollX),
-      y: Math.round(rect.top + window.scrollY)
+      y: Math.round(rect.top + window.scrollY),
     },
     dimensions: {
       width: Math.round(rect.width),
-      height: Math.round(rect.height)
+      height: Math.round(rect.height),
     },
     color: computedStyle.color,
-    backgroundColor: computedStyle.backgroundColor
+    backgroundColor: computedStyle.backgroundColor,
   };
 }
 
@@ -46,6 +91,7 @@ function handleMousedown(event) {
     duration: null,
     target: getElementInfo(event.target),
     eventId: eventId,
+    page: getPageInfo(),
   });
 }
 
@@ -69,6 +115,7 @@ function handleMouseup(event) {
     duration: duration,
     target: getElementInfo(event.target),
     eventId: eventId,
+    page: getPageInfo(),
   });
 }
 
@@ -83,6 +130,7 @@ function handleClick(event) {
     duration: null,
     target: getElementInfo(event.target),
     eventId: null,
+    page: getPageInfo(),
   });
 }
 
