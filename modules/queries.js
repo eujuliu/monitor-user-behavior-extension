@@ -1,6 +1,6 @@
 import { Stores } from "./db.js";
 
-const STATS_ID = "current";
+const CLICK_STATS_ID = "click-current";
 
 export async function getAllEvents(db, limit = 1000) {
   try {
@@ -22,7 +22,7 @@ export async function getEventStats(db) {
   try {
     const transaction = db.transaction([Stores.CLICK_STATS], "readonly");
     const store = transaction.objectStore(Stores.CLICK_STATS);
-    const request = store.get(STATS_ID);
+    const request = store.get(CLICK_STATS_ID);
 
     return new Promise((resolve, reject) => {
       request.onsuccess = () => {
@@ -67,7 +67,7 @@ export async function clearAllEvents(db) {
 
     await new Promise((resolve, reject) => {
       const resetStats = {
-        id: STATS_ID,
+        id: CLICK_STATS_ID,
         total: 0,
         clicks: 0,
         mousedowns: 0,
@@ -97,32 +97,30 @@ export async function exportEvents(db) {
   };
 }
 
-export function createQueryHandler(db) {
-  return function handleClickUIQueries(message) {
-    if (message.type === "GET_EVENTS") {
-      return getAllEvents(db, message.limit || 1000)
-        .then((events) => ({ success: true, events }))
-        .catch((error) => ({ success: false, error: error.message }));
-    }
+export function handleQuery(db, message) {
+  if (message.type === "GET_EVENTS") {
+    return getAllEvents(db, message.limit || 1000)
+      .then((events) => ({ success: true, events }))
+      .catch((error) => ({ success: false, error: error.message }));
+  }
 
-    if (message.type === "GET_STATS") {
-      return getEventStats(db)
-        .then((stats) => ({ success: true, stats }))
-        .catch((error) => ({ success: false, error: error.message }));
-    }
+  if (message.type === "GET_STATS") {
+    return getEventStats(db)
+      .then((stats) => ({ success: true, stats }))
+      .catch((error) => ({ success: false, error: error.message }));
+  }
 
-    if (message.type === "CLEAR_EVENTS") {
-      return clearAllEvents(db)
-        .then((result) => ({ success: result }))
-        .catch((error) => ({ success: false, error: error.message }));
-    }
+  if (message.type === "CLEAR_EVENTS") {
+    return clearAllEvents(db)
+      .then((result) => ({ success: result }))
+      .catch((error) => ({ success: false, error: error.message }));
+  }
 
-    if (message.type === "EXPORT_EVENTS") {
-      return exportEvents(db)
-        .then((data) => ({ success: true, data }))
-        .catch((error) => ({ success: false, error: error.message }));
-    }
+  if (message.type === "EXPORT_EVENTS") {
+    return exportEvents(db)
+      .then((data) => ({ success: true, data }))
+      .catch((error) => ({ success: false, error: error.message }));
+  }
 
-    return null;
-  };
+  return null;
 }

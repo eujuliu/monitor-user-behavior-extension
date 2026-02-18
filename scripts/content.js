@@ -5,6 +5,8 @@ let currentTrace = null;
 let traceTimeout = null;
 const TRACE_TIMEOUT_MS = 1000;
 
+const keydownTimes = new Map();
+
 function getPageInfo() {
   return {
     url: window.location.href,
@@ -180,7 +182,6 @@ function finalizeTrace() {
         trace: currentTrace,
         page: getPageInfo(),
         timestamp: startPoint.timestamp,
-        recordedAt: new Date().toISOString(),
       },
       "MOUSE_TRACE",
     );
@@ -218,7 +219,69 @@ function handleMouseMove(event) {
   traceTimeout = setTimeout(finalizeTrace, TRACE_TIMEOUT_MS);
 }
 
+function handleKeydown(event) {
+  if (event.ctrlKey || event.altKey || event.metaKey) return;
+  if (
+    event.key.length > 1 &&
+    event.key !== "Enter" &&
+    event.key !== "Backspace"
+  )
+    return;
+
+  const timestamp = Date.now();
+  const eventId = `${timestamp}-${Math.random()}`;
+
+  keydownTimes.set(eventId, timestamp);
+
+  sendEventData(
+    {
+      eventType: "keydown",
+      timestamp: timestamp,
+      interval: null,
+      target: getElementInfo(event.target),
+      eventId: eventId,
+      page: getPageInfo(),
+    },
+    "KEYBOARD",
+  );
+}
+
+function handleKeyup(event) {
+  if (event.ctrlKey || event.altKey || event.metaKey) return;
+  if (
+    event.key.length > 1 &&
+    event.key !== "Enter" &&
+    event.key !== "Backspace"
+  )
+    return;
+
+  const timestamp = Date.now();
+  let interval = null;
+  let eventId = null;
+
+  if (keydownTimes.size > 0) {
+    const [lastId, lastTime] = Array.from(keydownTimes.entries()).pop();
+    interval = timestamp - lastTime;
+    eventId = lastId;
+    keydownTimes.delete(lastId);
+  }
+
+  sendEventData(
+    {
+      eventType: "keyup",
+      timestamp: timestamp,
+      interval: interval,
+      target: getElementInfo(event.target),
+      eventId: eventId,
+      page: getPageInfo(),
+    },
+    "KEYBOARD",
+  );
+}
+
+document.addEventListener("mousemove", handleMouseMove, { passive: true });
 document.addEventListener("mousedown", handleMousedown, true);
 document.addEventListener("mouseup", handleMouseup, true);
 document.addEventListener("click", handleClick, true);
-document.addEventListener("mousemove", handleMouseMove, { passive: true });
+document.addEventListener("keydown", handleKeydown, true);
+document.addEventListener("keyup", handleKeyup, true);

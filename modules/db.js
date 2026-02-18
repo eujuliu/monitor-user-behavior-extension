@@ -1,11 +1,12 @@
 export const DB_NAME = "UserMonitorDB";
-export const DB_VERSION = 3;
+export const DB_VERSION = 5;
 
 export const Stores = {
   CLICKS: "clickEvents",
   CLICK_STATS: "clickStats",
   KEYBOARD: "keyboardEvents",
-  MOUSE_TRACE: "mouseTrace"
+  KEYBOARD_STATS: "keyboardStats",
+  MOUSE_TRACE: "mouseTrace",
 };
 
 export function createDB() {
@@ -17,8 +18,7 @@ export function createDB() {
 
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
-      
-      // Click events store
+
       if (!db.objectStoreNames.contains(Stores.CLICKS)) {
         const clicksStore = db.createObjectStore(Stores.CLICKS, {
           keyPath: "id",
@@ -28,26 +28,33 @@ export function createDB() {
         clicksStore.createIndex("eventType", "eventType", { unique: false });
         clicksStore.createIndex("url", "url", { unique: false });
       }
-      
-      // Click stats store
+
       if (!db.objectStoreNames.contains(Stores.CLICK_STATS)) {
         const statsStore = db.createObjectStore(Stores.CLICK_STATS, {
-          keyPath: "id"
+          keyPath: "id",
         });
       }
-      
-      // Keyboard events store
+
       if (!db.objectStoreNames.contains(Stores.KEYBOARD)) {
         const keyboardStore = db.createObjectStore(Stores.KEYBOARD, {
           keyPath: "id",
           autoIncrement: true,
         });
         keyboardStore.createIndex("timestamp", "timestamp", { unique: false });
-        keyboardStore.createIndex("key", "key", { unique: false });
+        keyboardStore.createIndex("eventType", "eventType", { unique: false });
         keyboardStore.createIndex("url", "url", { unique: false });
       }
-      
-      // Mouse trace store
+
+      if (!db.objectStoreNames.contains(Stores.KEYBOARD_STATS)) {
+        db.createObjectStore(Stores.KEYBOARD_STATS, {
+          keyPath: "id",
+        });
+      }
+
+      if (db.objectStoreNames.contains("keyboardSessions")) {
+        db.deleteObjectStore("keyboardSessions");
+      }
+
       if (!db.objectStoreNames.contains(Stores.MOUSE_TRACE)) {
         const traceStore = db.createObjectStore(Stores.MOUSE_TRACE, {
           keyPath: "id",

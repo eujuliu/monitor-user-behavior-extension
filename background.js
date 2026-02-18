@@ -1,31 +1,22 @@
 import { createDB, DB_NAME, DB_VERSION } from "./modules/db.js";
-import { createClickMessageHandler } from "./modules/clicks.js";
-import { createQueryHandler } from "./modules/queries.js";
-import { createMouseTraceHandler } from "./modules/mouseTrace.js";
+import { handleMessage } from "./modules/handlers.js";
+import { handleQuery } from "./modules/queries.js";
 
 let db = null;
-let handleClickMessage = null;
-let handleClickUIQueries = null;
-let handleMouseTrace = null;
 
 async function initialize() {
   db = await createDB();
-  handleClickMessage = createClickMessageHandler(db);
-  handleClickUIQueries = createQueryHandler(db);
-  handleMouseTrace = createMouseTraceHandler(db);
 
   console.log(`User Monitor: Database "${DB_NAME}" v${DB_VERSION} initialized`);
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  let result = handleClickMessage(message, sender);
+  // Handle data events (CLICK, MOUSE_TRACE, KEYBOARD)
+  let result = handleMessage(db, message, sender);
 
+  // Handle queries if not an event
   if (result === null) {
-    result = handleMouseTrace(message, sender);
-  }
-
-  if (result === null) {
-    result = handleClickUIQueries(message);
+    result = handleQuery(message);
   }
 
   if (result !== null && typeof result.then === "function") {
