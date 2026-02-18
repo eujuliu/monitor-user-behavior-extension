@@ -1,13 +1,11 @@
 import { Stores } from "./db.js";
 
-const STORE_NAME = Stores.CLICKS;
-const STATS_STORE = Stores.CLICK_STATS;
 const STATS_ID = "current";
 
 export async function getAllEvents(db, limit = 1000) {
   try {
-    const transaction = db.transaction([STORE_NAME], "readonly");
-    const store = transaction.objectStore(STORE_NAME);
+    const transaction = db.transaction([Stores.CLICKS], "readonly");
+    const store = transaction.objectStore(Stores.CLICKS);
     const request = store.getAll(null, limit);
 
     return new Promise((resolve, reject) => {
@@ -22,8 +20,8 @@ export async function getAllEvents(db, limit = 1000) {
 
 export async function getEventStats(db) {
   try {
-    const transaction = db.transaction([STATS_STORE], "readonly");
-    const store = transaction.objectStore(STATS_STORE);
+    const transaction = db.transaction([Stores.CLICK_STATS], "readonly");
+    const store = transaction.objectStore(Stores.CLICK_STATS);
     const request = store.get(STATS_ID);
 
     return new Promise((resolve, reject) => {
@@ -54,9 +52,12 @@ export async function getEventStats(db) {
 
 export async function clearAllEvents(db) {
   try {
-    const transaction = db.transaction([STORE_NAME, STATS_STORE], "readwrite");
-    const store = transaction.objectStore(STORE_NAME);
-    const statsStore = transaction.objectStore(STATS_STORE);
+    const transaction = db.transaction(
+      [Stores.CLICKS, Stores.CLICK_STATS],
+      "readwrite",
+    );
+    const store = transaction.objectStore(Stores.CLICKS);
+    const statsStore = transaction.objectStore(Stores.CLICK_STATS);
 
     const request = store.clear();
     await new Promise((resolve, reject) => {

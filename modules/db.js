@@ -1,5 +1,5 @@
 export const DB_NAME = "UserMonitorDB";
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 export const Stores = {
   CLICKS: "clickEvents",
@@ -55,6 +55,7 @@ export function createDB() {
         });
         traceStore.createIndex("timestamp", "timestamp", { unique: false });
         traceStore.createIndex("url", "url", { unique: false });
+        traceStore.createIndex("sessionId", "sessionId", { unique: false });
       }
     };
   });

@@ -1,6 +1,10 @@
 const mousedownTimes = new Map();
 const SESSION_ID = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
+let currentTrace = null;
+let traceTimeout = null;
+const TRACE_TIMEOUT_MS = 1000;
+
 function getPageInfo() {
   return {
     url: window.location.href,
@@ -65,12 +69,12 @@ function getElementInfo(element) {
   };
 }
 
-function sendEventData(data) {
+function sendEventData(data, type) {
   console.debug(data);
   chrome.runtime
     .sendMessage({
-      type: "CLICK_EVENT",
-      data: data,
+      type,
+      data,
     })
     .catch((err) => {
       // Silently handle errors when extension context is invalidated
@@ -83,16 +87,19 @@ function handleMousedown(event) {
 
   mousedownTimes.set(eventId, timestamp);
 
-  sendEventData({
-    eventType: "mousedown",
-    x: event.clientX,
-    y: event.clientY,
-    timestamp: timestamp,
-    duration: null,
-    target: getElementInfo(event.target),
-    eventId: eventId,
-    page: getPageInfo(),
-  });
+  sendEventData(
+    {
+      eventType: "mousedown",
+      x: event.clientX,
+      y: event.clientY,
+      timestamp: timestamp,
+      duration: null,
+      target: getElementInfo(event.target),
+      eventId: eventId,
+      page: getPageInfo(),
+    },
+    "CLICK",
+  );
 }
 
 function handleMouseup(event) {
@@ -107,33 +114,111 @@ function handleMouseup(event) {
     mousedownTimes.delete(lastId);
   }
 
-  sendEventData({
-    eventType: "mouseup",
-    x: event.clientX,
-    y: event.clientY,
-    timestamp: timestamp,
-    duration: duration,
-    target: getElementInfo(event.target),
-    eventId: eventId,
-    page: getPageInfo(),
-  });
+  sendEventData(
+    {
+      eventType: "mouseup",
+      x: event.clientX,
+      y: event.clientY,
+      timestamp: timestamp,
+      duration: duration,
+      target: getElementInfo(event.target),
+      eventId: eventId,
+      page: getPageInfo(),
+    },
+    "CLICK",
+  );
 }
 
 function handleClick(event) {
   const timestamp = Date.now();
 
-  sendEventData({
-    eventType: "click",
+  sendEventData(
+    {
+      eventType: "click",
+      x: event.clientX,
+      y: event.clientY,
+      timestamp: timestamp,
+      duration: null,
+      target: getElementInfo(event.target),
+      eventId: null,
+      page: getPageInfo(),
+    },
+    "CLICK",
+  );
+}
+
+function calculateSpeed(p1, p2) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const timeDiff = p2.timestamp - p1.timestamp;
+  return timeDiff > 0 ? distance / timeDiff : 0;
+}
+
+function finalizeTrace() {
+  if (currentTrace && currentTrace.points.length > 1) {
+    const startPoint = currentTrace.points[0];
+    const endPoint = currentTrace.points[currentTrace.points.length - 1];
+
+    currentTrace.duration = endPoint.timestamp - startPoint.timestamp;
+    currentTrace.totalDistance = currentTrace.points.reduce((sum, point, i) => {
+      if (i === 0) return 0;
+      const prev = currentTrace.points[i - 1];
+      const dx = point.x - prev.x;
+      const dy = point.y - prev.y;
+      return sum + Math.sqrt(dx * dx + dy * dy);
+    }, 0);
+
+    currentTrace.avgSpeed =
+      currentTrace.duration > 0
+        ? currentTrace.totalDistance / currentTrace.duration
+        : 0;
+
+    sendEventData(
+      {
+        eventType: "mouse_trace",
+        trace: currentTrace,
+        page: getPageInfo(),
+        timestamp: startPoint.timestamp,
+        recordedAt: new Date().toISOString(),
+      },
+      "MOUSE_TRACE",
+    );
+  }
+
+  currentTrace = null;
+}
+
+function handleMouseMove(event) {
+  const timestamp = Date.now();
+  const point = {
     x: event.clientX,
     y: event.clientY,
     timestamp: timestamp,
-    duration: null,
-    target: getElementInfo(event.target),
-    eventId: null,
-    page: getPageInfo(),
-  });
+  };
+
+  if (!currentTrace) {
+    currentTrace = {
+      startX: point.x,
+      startY: point.y,
+      startTimestamp: timestamp,
+      points: [point],
+    };
+  } else {
+    const lastPoint = currentTrace.points[currentTrace.points.length - 1];
+    const speed = calculateSpeed(lastPoint, point);
+
+    currentTrace.points.push({
+      ...point,
+      speed: speed,
+    });
+  }
+
+  clearTimeout(traceTimeout);
+  traceTimeout = setTimeout(finalizeTrace, TRACE_TIMEOUT_MS);
 }
 
 document.addEventListener("mousedown", handleMousedown, true);
 document.addEventListener("mouseup", handleMouseup, true);
 document.addEventListener("click", handleClick, true);
+document.addEventListener("mousemove", handleMouseMove, { passive: true });
