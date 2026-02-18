@@ -4,66 +4,19 @@ function getElementInfo(element) {
   const rect = element.getBoundingClientRect();
   const computedStyle = window.getComputedStyle(element);
 
-  const absoluteX = rect.left + window.scrollX;
-  const absoluteY = rect.top + window.scrollY;
-
-  const meaningfulAttrs = {};
-  if (element.attributes) {
-    for (let i = 0; i < element.attributes.length; i++) {
-      const attr = element.attributes[i];
-      const name = attr.name.toLowerCase();
-
-      if (name !== "id" && name !== "class" && !name.startsWith("data-")) {
-        meaningfulAttrs[name] = attr.value;
-      }
-    }
-  }
-
-  const parent = element.parentElement;
-  const siblingIndex = parent
-    ? Array.from(parent.children).indexOf(element)
-    : -1;
-  const totalSiblings = parent ? parent.children.length : 0;
-
-  const path = [];
-  let current = element;
-  while (current && current !== document.body) {
-    path.unshift(current.tagName?.toLowerCase());
-    current = current.parentElement;
-  }
-
   return {
-    tagName: element.tagName?.toLowerCase() || "unknown",
+    tag: element.tagName?.toLowerCase() || 'unknown',
+    text: element.textContent?.substring(0, 100) || null,
+    position: {
+      x: Math.round(rect.left + window.scrollX),
+      y: Math.round(rect.top + window.scrollY)
+    },
     dimensions: {
       width: Math.round(rect.width),
-      height: Math.round(rect.height),
+      height: Math.round(rect.height)
     },
-    position: {
-      x: Math.round(absoluteX),
-      y: Math.round(absoluteY),
-      viewportX: Math.round(rect.left),
-      viewportY: Math.round(rect.top),
-    },
-    styles: {
-      color: computedStyle.color,
-      backgroundColor: computedStyle.backgroundColor,
-      fontSize: computedStyle.fontSize,
-      fontWeight: computedStyle.fontWeight,
-      visibility: computedStyle.visibility,
-      display: computedStyle.display,
-    },
-    text: element.textContent?.substring(0, 100) || null,
-    attributes: meaningfulAttrs,
-    hierarchy: {
-      index: siblingIndex,
-      totalSiblings: totalSiblings,
-      parentTag: parent?.tagName?.toLowerCase() || null,
-      path: path.slice(-5).join(" > "), // Last 5 levels
-    },
-    href: element.href || null,
-    src: element.src || null,
-    type: element.type || null,
-    name: element.name || null,
+    color: computedStyle.color,
+    backgroundColor: computedStyle.backgroundColor
   };
 }
 
