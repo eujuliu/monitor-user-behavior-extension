@@ -41,28 +41,59 @@ function getPageInfo() {
 
 function sendMessage(id, data) {
   console.log({ id, data });
-  debugger;
   chrome.runtime.sendMessage({ id, data });
 }
 
-function click(event) {
-  const timestamp = Date.now();
-  const page = getPageInfo();
+let timestamp;
+let clickId;
 
+function mousedown(event) {
+  const page = getPageInfo();
+  timestamp = Date.now();
+  clickId = generateId(timestamp, page.domain, page.route);
+
+  sendMessage("MOUSEDOWN", {
+    x: event.clientX + window.scrollX,
+    y: event.clientY + window.scrollY,
+    page,
+    timestamp,
+    id: clickId,
+  });
+}
+
+function mouseup(event) {
+  if (!timestamp || !clickId) return;
+  const page = getPageInfo();
+  sendMessage("MOUSEUP", {
+    x: event.clientX + window.scrollX,
+    y: event.clientY + window.scrollY,
+    page,
+    timestamp,
+    id: clickId,
+  });
+}
+
+function click(event) {
+  if (!timestamp || !clickId) return;
+  const page = getPageInfo();
   sendMessage("CLICK", {
     x: event.clientX + window.scrollX,
     y: event.clientY + window.scrollY,
     page,
     timestamp,
-    id: generateId(timestamp, page.domain, page.route),
+    id: clickId,
   });
 }
 
 function clearListeners() {
   document.removeEventListener("click", click, { capture: true });
+  document.removeEventListener("mousedown", mousedown, { capture: true });
+  document.removeEventListener("mouseup", mouseup, { capture: true });
 }
 
 document.addEventListener("click", click);
+document.addEventListener("mousedown", mousedown);
+document.addEventListener("mouseup", mouseup);
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "CLEAR") clearListeners();

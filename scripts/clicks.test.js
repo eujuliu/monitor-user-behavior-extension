@@ -1,7 +1,5 @@
 const puppeteer = require("puppeteer");
 const path = require("path");
-const http = require("http");
-const fs = require("fs");
 const {
   expect,
   beforeEach,
@@ -9,45 +7,16 @@ const {
   describe,
   it,
 } = require("@jest/globals");
+const { getServerUrl } = require("../test/setup");
 
-describe("CLICKS", () => {
+describe("MOUSE EVENTS", () => {
   const EXTENSION_PATH = path.join(process.cwd(), "");
 
   let browser;
   let page;
   let worker;
-  let server;
-  let serverUrl;
 
   beforeEach(async () => {
-    server = http.createServer((req, res) => {
-      if (req.url === "/favicon.ico") {
-        res.writeHead(204);
-        res.end();
-        return;
-      }
-
-      const filePath = path.join(
-        process.cwd(),
-        req.url === "/" ? "/test/test.html" : req.url,
-      );
-
-      if (!fs.existsSync(filePath)) {
-        res.writeHead(404);
-        res.end("Not found");
-        return;
-      }
-
-      const content = fs.readFileSync(filePath);
-      const ext = path.extname(filePath);
-      const contentType = ext === ".html" ? "text/html" : "text/plain";
-      res.writeHead(200, { "Content-Type": contentType });
-      res.end(content);
-    });
-
-    await new Promise((resolve) => server.listen(0, resolve));
-    serverUrl = `http://localhost:${server.address().port}`;
-
     browser = await puppeteer.launch({
       pipe: true,
       enableExtensions: [EXTENSION_PATH],
@@ -58,13 +27,9 @@ describe("CLICKS", () => {
     if (browser) {
       await browser.close();
     }
-    if (server) {
-      server.close();
-    }
     browser = undefined;
     page = undefined;
     worker = undefined;
-    server = undefined;
   });
 
   it("should send click coordinates in message data", async () => {
@@ -74,32 +39,26 @@ describe("CLICKS", () => {
         target.url().endsWith("background.js"),
     );
 
-    if (!backgroundTarget) {
-      throw new Error("Extension service worker not found");
-    }
-
     worker = await backgroundTarget.worker();
 
     await worker.evaluate(() => {
       self.messages = [];
-
       chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         self.messages.push(message);
       });
     });
 
     page = await browser.newPage();
+    await page.goto(getServerUrl(), { waitUntil: "load" });
 
-    await page.goto(serverUrl, { waitUntil: "load" });
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const clickX = 250;
     const clickY = 150;
 
     await page.mouse.click(clickX, clickY);
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const messages = await worker.evaluate(() => self.messages);
 
@@ -112,5 +71,146 @@ describe("CLICKS", () => {
     expect(clickMessage.data).toBeDefined();
     expect(clickMessage.data.x).toBe(clickX);
     expect(clickMessage.data.y).toBe(clickY);
-  }, 30000);
+    expect(clickMessage.data.page).toBeDefined();
+    expect(clickMessage.data.timestamp).toBeDefined();
+    expect(clickMessage.data.id).toBeDefined();
+  });
+
+  it("should send mousedown and mouseup coordinates in message data after click", async () => {
+    const backgroundTarget = await browser.waitForTarget(
+      (target) =>
+        target.type() === "service_worker" &&
+        target.url().endsWith("background.js"),
+    );
+
+    worker = await backgroundTarget.worker();
+
+    await worker.evaluate(() => {
+      self.messages = [];
+      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        self.messages.push(message);
+      });
+    });
+
+    page = await browser.newPage();
+    await page.goto(getServerUrl(), { waitUntil: "load" });
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const clickX = 100;
+    const clickY = 200;
+
+    await page.mouse.click(clickX, clickY);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const messages = await worker.evaluate(() => self.messages);
+
+    expect(messages).toBeDefined();
+
+    const mousedownMessage = messages.find((m) => m.id === "MOUSEDOWN");
+    const mouseupMessage = messages.find((m) => m.id === "MOUSEUP");
+    const clickMessage = messages.find((m) => m.id === "CLICK");
+
+    expect(clickMessage).toBeDefined();
+    expect(mousedownMessage).toBeDefined();
+    expect(mouseupMessage).toBeDefined();
+
+    expect(mousedownMessage.data.x).toBe(clickX);
+    expect(mousedownMessage.data.y).toBe(clickY);
+    expect(mouseupMessage.data.x).toBe(clickX);
+    expect(mouseupMessage.data.y).toBe(clickY);
+
+    expect(clickMessage.data.id).toBe(mousedownMessage.data.id);
+    expect(clickMessage.data.id).toBe(mouseupMessage.data.id);
+  });
+
+  it("should have the same id for click, mousedown and mouseup", async () => {
+    const backgroundTarget = await browser.waitForTarget(
+      (target) =>
+        target.type() === "service_worker" &&
+        target.url().endsWith("background.js"),
+    );
+
+    worker = await backgroundTarget.worker();
+
+    await worker.evaluate(() => {
+      self.messages = [];
+      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        self.messages.push(message);
+      });
+    });
+
+    page = await browser.newPage();
+    await page.goto(getServerUrl(), { waitUntil: "load" });
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const clickX = 250;
+    const clickY = 150;
+
+    await page.mouse.click(clickX, clickY);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const messages = await worker.evaluate(() => self.messages);
+
+    expect(messages).toBeDefined();
+
+    const clickMessage = messages.find((m) => m.id === "CLICK");
+    const mousedownMessage = messages.find((m) => m.id === "MOUSEDOWN");
+    const mouseupMessage = messages.find((m) => m.id === "MOUSEUP");
+
+    expect(clickMessage).toBeDefined();
+    expect(mousedownMessage).toBeDefined();
+    expect(mouseupMessage).toBeDefined();
+
+    expect(clickMessage.data.id).toBe(mousedownMessage.data.id);
+    expect(clickMessage.data.id).toBe(mouseupMessage.data.id);
+    expect(mousedownMessage.data.id).toBe(mouseupMessage.data.id);
+  });
+
+  it("should have ordered timestamps for click, mousedown and mouseup", async () => {
+    const backgroundTarget = await browser.waitForTarget(
+      (target) =>
+        target.type() === "service_worker" &&
+        target.url().endsWith("background.js"),
+    );
+
+    worker = await backgroundTarget.worker();
+
+    await worker.evaluate(() => {
+      self.messages = [];
+      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        self.messages.push(message);
+      });
+    });
+
+    page = await browser.newPage();
+    await page.goto(getServerUrl(), { waitUntil: "load" });
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const clickX = 250;
+    const clickY = 150;
+
+    await page.mouse.click(clickX, clickY);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const messages = await worker.evaluate(() => self.messages);
+
+    expect(messages).toBeDefined();
+
+    const clickMessage = messages.find((m) => m.id === "CLICK");
+    const mousedownMessage = messages.find((m) => m.id === "MOUSEDOWN");
+    const mouseupMessage = messages.find((m) => m.id === "MOUSEUP");
+
+    expect(mousedownMessage.data.timestamp).toBeLessThanOrEqual(
+      mouseupMessage.data.timestamp,
+    );
+    expect(mouseupMessage.data.timestamp).toBeLessThanOrEqual(
+      clickMessage.data.timestamp,
+    );
+  });
 });
