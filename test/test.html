@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Extension Test Page</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				padding: 20px;
+			}
+			section {
+				margin-bottom: 300px;
+				padding: 20px;
+				border: 1px solid #ccc;
+			}
+			.item-group {
+				margin-bottom: 15px;
+			}
+			button {
+				margin: 5px;
+				padding: 8px 16px;
+			}
+			input, textarea {
+				margin: 5px;
+				padding: 5px;
+			}
+			a {
+				margin: 5px;
+				display: inline-block;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Test Page for Extension</h1>
+
+		<section id="section1">
+			<h2>Section 1</h2>
+			<div class="item-group">
+				<button type="button" id="btn1-1">Button 1</button>
+				<button type="button" id="btn1-2">Button 2</button>
+			</div>
+			<div class="item-group">
+				<input type="text" id="input1-1" placeholder="Input 1">
+				<input type="text" id="input1-2" placeholder="Input 2">
+			</div>
+			<div class="item-group">
+				<a href="#" id="link1-1">Link 1</a>
+				<a href="#" id="link1-2">Link 2</a>
+			</div>
+			<div class="item-group">
+				<textarea id="textarea1-1" rows="2" placeholder="Textarea 1"></textarea>
+				<textarea id="textarea1-2" rows="2" placeholder="Textarea 2"></textarea>
+			</div>
+		</section>
+
+		<section id="section2">
+			<h2>Section 2</h2>
+			<div class="item-group">
+				<button type="button" id="btn2-1">Button 3</button>
+				<button type="button" id="btn2-2">Button 4</button>
+			</div>
+			<div class="item-group">
+				<input type="text" id="input2-1" placeholder="Input 3">
+				<input type="text" id="input2-2" placeholder="Input 4">
+			</div>
+			<div class="item-group">
+				<a href="#" id="link2-1">Link 3</a>
+				<a href="#" id="link2-2">Link 4</a>
+			</div>
+			<div class="item-group">
+				<textarea id="textarea2-1" rows="2" placeholder="Textarea 3"></textarea>
+				<textarea id="textarea2-2" rows="2" placeholder="Textarea 4"></textarea>
+			</div>
+		</section>
+
+		<section id="section3">
+			<h2>Section 3</h2>
+			<div class="item-group">
+				<button type="button" id="btn3-1">Button 5</button>
+				<button type="button" id="btn3-2">Button 6</button>
+			</div>
+			<div class="item-group">
+				<input type="text" id="input3-1" placeholder="Input 5">
+				<input type="text" id="input3-2" placeholder="Input 6">
+			</div>
+			<div class="item-group">
+				<a href="#" id="link3-1">Link 5</a>
+				<a href="#" id="link3-2">Link 6</a>
+			</div>
+			<div class="item-group">
+				<textarea id="textarea3-1" rows="2" placeholder="Textarea 5"></textarea>
+				<textarea id="textarea3-2" rows="2" placeholder="Textarea 6"></textarea>
+			</div>
+		</section>
+
+		<script>
+			document.addEventListener('click', function(event) {
+				const target = event.target;
+				if (target.tagName === 'BUTTON' ||
+				target.tagName === 'A' ||
+				target.tagName === 'TEXTAREA' ||
+				target.tagName === 'INPUT') {
+					target.style.border = '3px solid black';
+				}
+				});
+		</script>
+	</body>
+</html>
