@@ -21,6 +21,20 @@ describe("MOUSE EVENTS", () => {
       pipe: true,
       enableExtensions: [EXTENSION_PATH],
     });
+
+    const backgroundTarget = await browser.waitForTarget(
+      (target) =>
+        target.type() === "service_worker" &&
+        target.url().endsWith("background.js"),
+    );
+    worker = await backgroundTarget.worker();
+
+    await worker.evaluate(() => {
+      self.messages = [];
+      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        self.messages.push(message);
+      });
+    });
   });
 
   afterEach(async () => {
@@ -33,31 +47,14 @@ describe("MOUSE EVENTS", () => {
   });
 
   it("should send click coordinates in message data", async () => {
-    const backgroundTarget = await browser.waitForTarget(
-      (target) =>
-        target.type() === "service_worker" &&
-        target.url().endsWith("background.js"),
-    );
-
-    worker = await backgroundTarget.worker();
-
-    await worker.evaluate(() => {
-      self.messages = [];
-      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        self.messages.push(message);
-      });
-    });
-
     page = await browser.newPage();
     await page.goto(getServerUrl(), { waitUntil: "load" });
-
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const clickX = 250;
     const clickY = 150;
 
     await page.mouse.click(clickX, clickY);
-
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const messages = await worker.evaluate(() => self.messages);
@@ -77,31 +74,14 @@ describe("MOUSE EVENTS", () => {
   });
 
   it("should send mousedown and mouseup coordinates in message data after click", async () => {
-    const backgroundTarget = await browser.waitForTarget(
-      (target) =>
-        target.type() === "service_worker" &&
-        target.url().endsWith("background.js"),
-    );
-
-    worker = await backgroundTarget.worker();
-
-    await worker.evaluate(() => {
-      self.messages = [];
-      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        self.messages.push(message);
-      });
-    });
-
     page = await browser.newPage();
     await page.goto(getServerUrl(), { waitUntil: "load" });
-
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const clickX = 100;
     const clickY = 200;
 
     await page.mouse.click(clickX, clickY);
-
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const messages = await worker.evaluate(() => self.messages);
@@ -126,31 +106,14 @@ describe("MOUSE EVENTS", () => {
   });
 
   it("should have the same id for click, mousedown and mouseup", async () => {
-    const backgroundTarget = await browser.waitForTarget(
-      (target) =>
-        target.type() === "service_worker" &&
-        target.url().endsWith("background.js"),
-    );
-
-    worker = await backgroundTarget.worker();
-
-    await worker.evaluate(() => {
-      self.messages = [];
-      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        self.messages.push(message);
-      });
-    });
-
     page = await browser.newPage();
     await page.goto(getServerUrl(), { waitUntil: "load" });
-
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const clickX = 250;
     const clickY = 150;
 
     await page.mouse.click(clickX, clickY);
-
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const messages = await worker.evaluate(() => self.messages);
@@ -171,31 +134,14 @@ describe("MOUSE EVENTS", () => {
   });
 
   it("should have ordered timestamps for click, mousedown and mouseup", async () => {
-    const backgroundTarget = await browser.waitForTarget(
-      (target) =>
-        target.type() === "service_worker" &&
-        target.url().endsWith("background.js"),
-    );
-
-    worker = await backgroundTarget.worker();
-
-    await worker.evaluate(() => {
-      self.messages = [];
-      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        self.messages.push(message);
-      });
-    });
-
     page = await browser.newPage();
     await page.goto(getServerUrl(), { waitUntil: "load" });
-
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const clickX = 250;
     const clickY = 150;
 
     await page.mouse.click(clickX, clickY);
-
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const messages = await worker.evaluate(() => self.messages);
