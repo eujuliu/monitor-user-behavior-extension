@@ -107,7 +107,9 @@ describe("MOUSE EVENTS", () => {
 
   it("should have the same id for click, mousedown and mouseup", async () => {
     page = await browser.newPage();
+
     await page.goto(getServerUrl(), { waitUntil: "load" });
+
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const clickX = 250;
@@ -135,7 +137,9 @@ describe("MOUSE EVENTS", () => {
 
   it("should have ordered timestamps for click, mousedown and mouseup", async () => {
     page = await browser.newPage();
+
     await page.goto(getServerUrl(), { waitUntil: "load" });
+
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const clickX = 250;
@@ -162,7 +166,9 @@ describe("MOUSE EVENTS", () => {
 
   it("should calculate speed in mouseup", async () => {
     page = await browser.newPage();
+
     await page.goto(getServerUrl(), { waitUntil: "load" });
+
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const clickX = 250;
@@ -179,5 +185,114 @@ describe("MOUSE EVENTS", () => {
 
     expect(mouseupMessage.data.speed).toBeDefined();
     expect(mouseupMessage.data.speed).toBeGreaterThanOrEqual(0);
+  });
+
+  it("should send ELEMENT message when clicking on a button", async () => {
+    page = await browser.newPage();
+
+    await page.goto(getServerUrl(), { waitUntil: "load" });
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    await page.click("#btn1-1");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const messages = await worker.evaluate(() => self.messages);
+
+    expect(messages).toBeDefined();
+
+    const elementMessage = messages.find((m) => m.id === "ELEMENT");
+
+    expect(elementMessage).toBeDefined();
+    expect(elementMessage.data.tag).toBe("button");
+    expect(elementMessage.data.text).toBe("Button 1");
+    expect(elementMessage.data.textColor).toBeDefined();
+    expect(elementMessage.data.width).toBeGreaterThan(0);
+    expect(elementMessage.data.height).toBeGreaterThan(0);
+    expect(elementMessage.data.event).toBe("MOUSEPRESS");
+    expect(elementMessage.data.eventId).toBeDefined();
+  });
+
+  it("should send ELEMENT message when clicking on an input", async () => {
+    page = await browser.newPage();
+
+    await page.goto(getServerUrl(), { waitUntil: "load" });
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    await page.click("#input1-1");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const messages = await worker.evaluate(() => self.messages);
+
+    expect(messages).toBeDefined();
+
+    const elementMessage = messages.find((m) => m.id === "ELEMENT");
+
+    expect(elementMessage).toBeDefined();
+    expect(elementMessage.data.tag).toBe("input");
+    expect(elementMessage.data.event).toBe("MOUSEPRESS");
+  });
+
+  it("should send ELEMENT message when clicking on a link", async () => {
+    page = await browser.newPage();
+
+    await page.goto(getServerUrl(), { waitUntil: "load" });
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    await page.click("#link1-1");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const messages = await worker.evaluate(() => self.messages);
+
+    expect(messages).toBeDefined();
+
+    const elementMessage = messages.find((m) => m.id === "ELEMENT");
+
+    expect(elementMessage).toBeDefined();
+    expect(elementMessage.data.tag).toBe("a");
+    expect(elementMessage.data.text).toBe("Link 1");
+    expect(elementMessage.data.event).toBe("MOUSEPRESS");
+  });
+
+  it("should send ELEMENT message when clicking on a textarea", async () => {
+    page = await browser.newPage();
+
+    await page.goto(getServerUrl(), { waitUntil: "load" });
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    await page.click("#textarea1-1");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const messages = await worker.evaluate(() => self.messages);
+
+    expect(messages).toBeDefined();
+
+    const elementMessage = messages.find((m) => m.id === "ELEMENT");
+
+    expect(elementMessage).toBeDefined();
+    expect(elementMessage.data.tag).toBe("textarea");
+    expect(elementMessage.data.event).toBe("MOUSEPRESS");
+  });
+
+  it("should NOT send ELEMENT message when clicking on non-clickable element", async () => {
+    page = await browser.newPage();
+
+    await page.goto(getServerUrl(), { waitUntil: "load" });
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    await page.click("h1");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const messages = await worker.evaluate(() => self.messages);
+
+    expect(messages).toBeDefined();
+
+    const elementMessage = messages.find((m) => m.id === "ELEMENT");
+
+    expect(elementMessage).toBeUndefined();
   });
 });

@@ -39,6 +39,36 @@ function getPageInfo() {
   };
 }
 
+function getElementInfo(element, eventType) {
+  const rect = element.getBoundingClientRect();
+  const style = window.getComputedStyle(element);
+
+  return {
+    x: rect.left + window.scrollX,
+    y: rect.top + window.scrollY,
+    width: rect.width,
+    height: rect.height,
+    tag: element.tagName.toLowerCase(),
+    textColor: style.color,
+    text: element.innerText || element.value || "",
+    page: getPageInfo(),
+    timestamp: Date.now(),
+    eventId: clickId,
+    event: eventType,
+  };
+}
+
+function getClickableElement(element) {
+  const clickableTags = ["input", "textarea", "button", "a", "select", "label"];
+  const tag = element.tagName.toLowerCase();
+
+  if (clickableTags.includes(tag)) {
+    return element;
+  }
+
+  return element.closest("button, a, input, textarea, select, label, [role='button']");
+}
+
 function sendMessage(id, data) {
   console.log({ id, data });
   chrome.runtime.sendMessage({ id, data });
@@ -49,6 +79,7 @@ let clickId;
 
 function mousedown(event) {
   const page = getPageInfo();
+
   timestamp = Date.now();
   clickId = generateId(timestamp, page.domain, page.route);
 
@@ -59,12 +90,19 @@ function mousedown(event) {
     timestamp,
     id: clickId,
   });
+
+  const clickableElement = getClickableElement(event.target);
+  if (clickableElement) {
+    sendMessage("ELEMENT", getElementInfo(clickableElement, "MOUSEPRESS"));
+  }
 }
 
 function mouseup(event) {
   if (!timestamp || !clickId) return;
+
   const page = getPageInfo();
   const mouseupTimestamp = Date.now();
+
   sendMessage("MOUSEUP", {
     x: event.clientX + window.scrollX,
     y: event.clientY + window.scrollY,
@@ -77,7 +115,9 @@ function mouseup(event) {
 
 function click(event) {
   if (!timestamp || !clickId) return;
+
   const page = getPageInfo();
+
   sendMessage("CLICK", {
     x: event.clientX + window.scrollX,
     y: event.clientY + window.scrollY,
