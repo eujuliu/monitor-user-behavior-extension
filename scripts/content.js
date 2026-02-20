@@ -66,7 +66,9 @@ function getClickableElement(element) {
     return element;
   }
 
-  return element.closest("button, a, input, textarea, select, label, [role='button']");
+  return element.closest(
+    "button, a, input, textarea, select, label, [role='button']",
+  );
 }
 
 function sendMessage(id, data) {
@@ -84,8 +86,8 @@ function mousedown(event) {
   clickId = generateId(timestamp, page.domain, page.route);
 
   sendMessage("MOUSEDOWN", {
-    x: event.clientX + window.scrollX,
-    y: event.clientY + window.scrollY,
+    x: event.pageX,
+    y: event.pageY,
     page,
     timestamp,
     id: clickId,
@@ -104,8 +106,8 @@ function mouseup(event) {
   const mouseupTimestamp = Date.now();
 
   sendMessage("MOUSEUP", {
-    x: event.clientX + window.scrollX,
-    y: event.clientY + window.scrollY,
+    x: event.pageX,
+    y: event.pageY,
     page,
     timestamp,
     id: clickId,
@@ -119,8 +121,8 @@ function click(event) {
   const page = getPageInfo();
 
   sendMessage("CLICK", {
-    x: event.clientX + window.scrollX,
-    y: event.clientY + window.scrollY,
+    x: event.pageX,
+    y: event.pageY,
     page,
     timestamp,
     id: clickId,
