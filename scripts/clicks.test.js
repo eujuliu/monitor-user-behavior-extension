@@ -31,7 +31,7 @@ describe("MOUSE EVENTS", () => {
 
     await worker.evaluate(() => {
       self.messages = [];
-      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      chrome.runtime.onMessage.addListener((message) => {
         self.messages.push(message);
       });
     });
@@ -158,5 +158,26 @@ describe("MOUSE EVENTS", () => {
     expect(mouseupMessage.data.timestamp).toBeLessThanOrEqual(
       clickMessage.data.timestamp,
     );
+  });
+
+  it("should calculate speed in mouseup", async () => {
+    page = await browser.newPage();
+    await page.goto(getServerUrl(), { waitUntil: "load" });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const clickX = 250;
+    const clickY = 150;
+
+    await page.mouse.click(clickX, clickY);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const messages = await worker.evaluate(() => self.messages);
+
+    expect(messages).toBeDefined();
+
+    const mouseupMessage = messages.find((m) => m.id === "MOUSEUP");
+
+    expect(mouseupMessage.data.speed).toBeDefined();
+    expect(mouseupMessage.data.speed).toBeGreaterThanOrEqual(0);
   });
 });

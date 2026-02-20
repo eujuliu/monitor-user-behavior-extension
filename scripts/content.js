@@ -64,12 +64,14 @@ function mousedown(event) {
 function mouseup(event) {
   if (!timestamp || !clickId) return;
   const page = getPageInfo();
+  const mouseupTimestamp = Date.now();
   sendMessage("MOUSEUP", {
     x: event.clientX + window.scrollX,
     y: event.clientY + window.scrollY,
     page,
     timestamp,
     id: clickId,
+    speed: mouseupTimestamp - timestamp,
   });
 }
 
