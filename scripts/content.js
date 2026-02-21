@@ -28,7 +28,7 @@ function generateId(timestamp, domain, route) {
     hash = hash & hash;
   }
 
-  return `${timestamp}-${toBase62(Math.abs(hash))}`;
+  return `${timestamp}${toBase62(Math.abs(hash))}`;
 }
 
 function getPageInfo() {
@@ -89,6 +89,12 @@ let scrollLastY;
 let scrollId;
 let scrollTimestamp;
 
+let mouseTraceTimeout;
+let mouseTraceId;
+let mouseTraceTimestamp;
+let mouseTracePoints = [];
+let lastMousePoint = null;
+
 function mousedown(event) {
   const page = getPageInfo();
 
@@ -127,6 +133,53 @@ function mouseup(event) {
     id: clickId,
     speed: mouseupTimestamp - timestamp,
   });
+}
+
+function mousemove(event) {
+  const page = getPageInfo();
+  const now = Date.now();
+
+  if (!mouseTraceId) {
+    mouseTraceId = generateId(now, page.domain, page.route);
+    mouseTraceTimestamp = now;
+    mouseTracePoints = [];
+    lastMousePoint = { x: event.pageX, y: event.pageY, timestamp: now };
+  }
+
+  const speed = lastMousePoint ? now - lastMousePoint.timestamp : 0;
+  mouseTracePoints.push({
+    x: event.pageX,
+    y: event.pageY,
+    speed,
+  });
+  lastMousePoint = { x: event.pageX, y: event.pageY, timestamp: now };
+
+  clearTimeout(mouseTraceTimeout);
+
+  mouseTraceTimeout = setTimeout(() => {
+    if (mouseTraceId && mouseTracePoints.length >= 3) {
+      let totalSpeed = 0;
+      for (const point of mouseTracePoints) {
+        totalSpeed += point.speed;
+      }
+      const avgSpeed = totalSpeed / mouseTracePoints.length;
+
+      sendMessage("MOUSE_TRACE", {
+        page,
+        timestamp: now,
+        start_time: mouseTraceTimestamp,
+        end_time: Date.now(),
+        id: mouseTraceId,
+        points: mouseTracePoints,
+        avg_speed: avgSpeed,
+      });
+    }
+
+    mouseTraceId = null;
+    mouseTraceTimestamp = null;
+    mouseTracePoints = [];
+    lastMousePoint = null;
+  }, 150);
 }
 
 function click(event) {
@@ -228,23 +281,29 @@ function scroll(event) {
 
 function clearListeners() {
   if (!active) return;
+
   document.removeEventListener("click", click, { capture: true });
   document.removeEventListener("mousedown", mousedown, { capture: true });
   document.removeEventListener("mouseup", mouseup, { capture: true });
+  document.removeEventListener("mousemove", mousemove);
   document.removeEventListener("keydown", keydown);
   document.removeEventListener("keyup", keyup);
   document.removeEventListener("scroll", scroll);
+
   active = false;
 }
 
 function addListeners() {
   if (active) return;
+
   document.addEventListener("click", click);
   document.addEventListener("mousedown", mousedown);
   document.addEventListener("mouseup", mouseup);
+  document.addEventListener("mousemove", mousemove);
   document.addEventListener("keydown", keydown);
   document.addEventListener("keyup", keyup);
   document.addEventListener("scroll", scroll);
+
   active = true;
 }
 
