@@ -81,6 +81,7 @@ let clickId;
 let keyTimestamp;
 let keyId;
 let lastKeypressElement;
+let active = true;
 
 function mousedown(event) {
   const page = getPageInfo();
@@ -181,21 +182,29 @@ function keyup(event) {
 }
 
 function clearListeners() {
+  if (!active) return;
   document.removeEventListener("click", click, { capture: true });
   document.removeEventListener("mousedown", mousedown, { capture: true });
   document.removeEventListener("mouseup", mouseup, { capture: true });
   document.removeEventListener("keydown", keydown);
   document.removeEventListener("keyup", keyup);
+  active = false;
 }
 
-document.addEventListener("click", click);
-document.addEventListener("mousedown", mousedown);
-document.addEventListener("mouseup", mouseup);
-document.addEventListener("keydown", keydown);
-document.addEventListener("keyup", keyup);
+function addListeners() {
+  if (active) return;
+  document.addEventListener("click", click);
+  document.addEventListener("mousedown", mousedown);
+  document.addEventListener("mouseup", mouseup);
+  document.addEventListener("keydown", keydown);
+  document.addEventListener("keyup", keyup);
+  active = true;
+}
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "CLEAR") clearListeners();
+  if (message.type === "START") addListeners();
 });
 
+addListeners();
 console.log("Initialized listeners");
