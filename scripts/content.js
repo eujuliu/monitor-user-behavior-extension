@@ -173,7 +173,7 @@ function keyup(event) {
     page,
     timestamp: keyupTimestamp,
     id: keyId,
-    type_speed: keyupTimestamp - keyTimestamp,
+    speed: keyupTimestamp - keyTimestamp,
   });
 
   keyTimestamp = null;

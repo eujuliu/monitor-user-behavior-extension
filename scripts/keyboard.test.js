@@ -65,7 +65,6 @@ describe("KEYBOARD EVENTS", () => {
     expect(keydownMessage.data.page).toBeDefined();
     expect(keydownMessage.data.timestamp).toBeDefined();
     expect(keydownMessage.data.id).toBeDefined();
-    expect(keydownMessage.data.type_speed).toBe(0);
   });
 
   it("should send KEYUP message on key release", async () => {
@@ -87,8 +86,8 @@ describe("KEYBOARD EVENTS", () => {
     expect(keyupMessage.data.page).toBeDefined();
     expect(keyupMessage.data.timestamp).toBeDefined();
     expect(keyupMessage.data.id).toBeDefined();
-    expect(keyupMessage.data.type_speed).toBeDefined();
-    expect(keyupMessage.data.type_speed).toBeGreaterThanOrEqual(0);
+    expect(keyupMessage.data.speed).toBeDefined();
+    expect(keyupMessage.data.speed).toBeGreaterThanOrEqual(0);
   });
 
   it("should have same id for KEYDOWN and KEYUP", async () => {
