@@ -21,12 +21,11 @@
   "content_scripts": [
     {
       "js": [
-        "scripts/content.js"
+        "content.js"
       ],
       "matches": [
         "<all_urls>"
-      ],
-      "type": "module"
+      ]
     }
   ],
   "background": {

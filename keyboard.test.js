@@ -7,7 +7,7 @@ const {
   describe,
   it,
 } = require("@jest/globals");
-const { getServerUrl } = require("../test/setup");
+const { getServerUrl } = require("./test/setup");
 
 describe("KEYBOARD EVENTS", () => {
   const EXTENSION_PATH = path.join(process.cwd(), "");
