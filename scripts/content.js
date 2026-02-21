@@ -81,7 +81,13 @@ let clickId;
 let keyTimestamp;
 let keyId;
 let lastKeypressElement;
-let active = true;
+let active = false;
+
+let scrollTimeout;
+let scrollStartY;
+let scrollLastY;
+let scrollId;
+let scrollTimestamp;
 
 function mousedown(event) {
   const page = getPageInfo();
@@ -181,6 +187,45 @@ function keyup(event) {
   keyId = null;
 }
 
+function scroll(event) {
+  const currentY = window.scrollY;
+  const page = getPageInfo();
+  const now = Date.now();
+
+  if (!scrollId) {
+    scrollStartY = currentY;
+    scrollLastY = currentY;
+    scrollTimestamp = now;
+    scrollId = generateId(scrollTimestamp, page.domain, page.route);
+  }
+
+  scrollLastY = currentY;
+
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    if (scrollId) {
+      const distance = Math.abs(scrollLastY - scrollStartY);
+      const direction = scrollLastY > scrollStartY ? "down" : "up";
+
+      sendMessage("SCROLL", {
+        page,
+        timestamp: now,
+        start_time: scrollTimestamp,
+        end_time: Date.now(),
+        start_y: scrollStartY,
+        id: scrollId,
+        distance,
+        direction,
+      });
+
+      scrollId = null;
+      scrollStartY = null;
+      scrollLastY = null;
+      scrollTimestamp = null;
+    }
+  }, 150);
+}
+
 function clearListeners() {
   if (!active) return;
   document.removeEventListener("click", click, { capture: true });
@@ -188,6 +233,7 @@ function clearListeners() {
   document.removeEventListener("mouseup", mouseup, { capture: true });
   document.removeEventListener("keydown", keydown);
   document.removeEventListener("keyup", keyup);
+  document.removeEventListener("scroll", scroll);
   active = false;
 }
 
@@ -198,6 +244,7 @@ function addListeners() {
   document.addEventListener("mouseup", mouseup);
   document.addEventListener("keydown", keydown);
   document.addEventListener("keyup", keyup);
+  document.addEventListener("scroll", scroll);
   active = true;
 }
 
