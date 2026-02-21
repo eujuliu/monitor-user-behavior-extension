@@ -39,7 +39,7 @@ function getPageInfo() {
   };
 }
 
-function getElementInfo(element, eventType) {
+function getElementInfo(element, eventType, eventId) {
   const rect = element.getBoundingClientRect();
   const style = window.getComputedStyle(element);
 
@@ -53,7 +53,7 @@ function getElementInfo(element, eventType) {
     text: element.innerText || element.value || "",
     page: getPageInfo(),
     timestamp: Date.now(),
-    eventId: clickId,
+    eventId,
     event: eventType,
   };
 }
@@ -72,12 +72,15 @@ function getClickableElement(element) {
 }
 
 function sendMessage(id, data) {
-  console.log({ id, data });
+  console.debug({ id, data });
   chrome.runtime.sendMessage({ id, data });
 }
 
 let timestamp;
 let clickId;
+let keyTimestamp;
+let keyId;
+let lastKeypressElement;
 
 function mousedown(event) {
   const page = getPageInfo();
@@ -94,8 +97,12 @@ function mousedown(event) {
   });
 
   const clickableElement = getClickableElement(event.target);
+
   if (clickableElement) {
-    sendMessage("ELEMENT", getElementInfo(clickableElement, "MOUSEPRESS"));
+    sendMessage(
+      "ELEMENT",
+      getElementInfo(clickableElement, "MOUSEPRESS", clickId),
+    );
   }
 }
 
@@ -129,15 +136,63 @@ function click(event) {
   });
 }
 
+function keydown(event) {
+  if (event.repeat) return;
+
+  const target = event.target;
+  const isInputElement =
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.isContentEditable;
+
+  if (!isInputElement) return;
+
+  const page = getPageInfo();
+  keyTimestamp = Date.now();
+  keyId = generateId(keyTimestamp, page.domain, page.route);
+
+  sendMessage("KEYDOWN", {
+    page,
+    timestamp: keyTimestamp,
+    id: keyId,
+  });
+
+  if (lastKeypressElement !== target) {
+    lastKeypressElement = target;
+    sendMessage("ELEMENT", getElementInfo(target, "KEYPRESS", keyId));
+  }
+}
+
+function keyup(event) {
+  if (!keyTimestamp || !keyId) return;
+
+  const page = getPageInfo();
+  const keyupTimestamp = Date.now();
+
+  sendMessage("KEYUP", {
+    page,
+    timestamp: keyupTimestamp,
+    id: keyId,
+    type_speed: keyupTimestamp - keyTimestamp,
+  });
+
+  keyTimestamp = null;
+  keyId = null;
+}
+
 function clearListeners() {
   document.removeEventListener("click", click, { capture: true });
   document.removeEventListener("mousedown", mousedown, { capture: true });
   document.removeEventListener("mouseup", mouseup, { capture: true });
+  document.removeEventListener("keydown", keydown);
+  document.removeEventListener("keyup", keyup);
 }
 
 document.addEventListener("click", click);
 document.addEventListener("mousedown", mousedown);
 document.addEventListener("mouseup", mouseup);
+document.addEventListener("keydown", keydown);
+document.addEventListener("keyup", keyup);
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "CLEAR") clearListeners();
