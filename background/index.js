@@ -11,6 +11,8 @@ const STORES = {
   ELEMENT: "elements",
 };
 
+let weeklyReportEnabled = false;
+
 function createDatabase() {
   let db = null;
 
@@ -129,53 +131,65 @@ function createDatabase() {
 
   async function queryEvents(eventId, predicate) {
     const allEvents = await getAllEvents(eventId);
-    
+
     if (!predicate) {
       return allEvents;
     }
-    
+
     return allEvents.filter(predicate);
   }
 
   async function exportToJson(startDate, endDate) {
     const exportData = {};
-    
+
     for (const [eventKey, storeName] of Object.entries(STORES)) {
       const events = await getAllEvents(eventKey);
-      
-      const filteredEvents = events.filter(event => {
+
+      const filteredEvents = events.filter((event) => {
         const createdAt = event.createdAt;
         return createdAt >= startDate && createdAt <= endDate;
       });
-      
+
       exportData[storeName] = filteredEvents;
     }
-    
-    return JSON.stringify(exportData, null, 2);
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+
+    const startDateStr = new Date(startDate).toISOString().split("T")[0];
+    const endDateStr = new Date(endDate).toISOString().split("T")[0];
+    const filename = `user-monitoring-chrome/${startDateStr}-${endDateStr}.json`;
+
+    const downloadId = await chrome.downloads.download({
+      url: URL.createObjectURL(blob),
+      filename: filename,
+      saveAs: false,
+    });
+
+    return downloadId;
   }
 
   async function scheduleWeeklyExport() {
+    if (weeklyReportEnabled) return;
+    weeklyReportEnabled = true;
     const now = new Date();
     const dayOfWeek = now.getDay();
     const daysUntilSunday = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
     const nextSunday = new Date(now);
     nextSunday.setDate(now.getDate() + daysUntilSunday);
     nextSunday.setHours(0, 0, 0, 0);
-    
+
     const delay = nextSunday.getTime() - now.getTime();
-    
+
     setTimeout(async () => {
       const startDate = new Date(nextSunday);
       startDate.setDate(startDate.getDate() - 7);
       const endDate = new Date(nextSunday);
-      
-      const jsonData = await exportToJson(startDate.getTime(), endDate.getTime());
-      
-      const filename = `user-monitoring-chrome/${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}.json`;
-      
-      console.debug("Weekly export generated:", filename);
-      console.debug(jsonData);
-      
+
+      await exportToJson(startDate.getTime(), endDate.getTime());
+
+      weeklyReportEnabled = false;
+
       scheduleWeeklyExport();
     }, delay);
   }
@@ -198,7 +212,7 @@ self.db = db;
 
 db.scheduleWeeklyExport();
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message) => {
   const eventId = message.id;
 
   if (eventId && STORES[eventId]) {

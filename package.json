@@ -2,7 +2,7 @@
   "name": "monitor-chrome-extension",
   "version": "1.0.0",
   "description": "",
-  "main": "background.js",
+  "main": "background/index.js",
   "dependencies": {
     "chrome-types": "^0.1.415",
     "ts-jest": "^29.4.6",

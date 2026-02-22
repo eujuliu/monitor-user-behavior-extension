@@ -7,7 +7,7 @@ const {
   describe,
   it,
 } = require("@jest/globals");
-const { getServerUrl } = require("./test/setup");
+const { getServerUrl } = require("../test/setup");
 
 describe("INDEXEDDB", () => {
   const EXTENSION_PATH = path.join(process.cwd(), "");
@@ -25,7 +25,7 @@ describe("INDEXEDDB", () => {
     const backgroundTarget = await browser.waitForTarget(
       (target) =>
         target.type() === "service_worker" &&
-        target.url().endsWith("background.js"),
+        target.url().endsWith("background/index.js"),
     );
     worker = await backgroundTarget.worker();
   });
