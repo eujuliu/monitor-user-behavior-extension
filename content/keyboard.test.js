@@ -112,13 +112,17 @@ describe("KEYBOARD EVENTS", () => {
   });
 
   it("should send ELEMENT message when typing in input", async () => {
+    await worker.evaluate(() => {
+      return self.db.clearEvents("ELEMENT");
+    });
+
     page = await browser.newPage();
     await page.goto(getServerUrl(), { waitUntil: "load" });
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    await page.click("#input1-1");
+    await page.focus("#input1-1");
     await page.keyboard.press("a");
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const messages = await worker.evaluate(() => self.messages);
 
@@ -134,14 +138,42 @@ describe("KEYBOARD EVENTS", () => {
     expect(elementMessage.data.eventId).toBeDefined();
   });
 
-  it("should send ELEMENT message when typing in textarea", async () => {
+  it("should NOT send duplicate ELEMENT for same input", async () => {
+    await worker.evaluate(() => {
+      return self.db.clearEvents("ELEMENT");
+    });
+
     page = await browser.newPage();
     await page.goto(getServerUrl(), { waitUntil: "load" });
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    await page.click("#textarea1-1");
-    await page.keyboard.press("a");
+    await page.focus("#input1-1");
+    await page.keyboard.type("abc");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const messages = await worker.evaluate(() => self.messages);
+
+    expect(messages).toBeDefined();
+
+    const keypressMessages = messages.filter(
+      (m) => m.id === "ELEMENT" && m.data.event === "KEYPRESS",
+    );
+
+    expect(keypressMessages.length).toBe(2);
+  });
+
+  it("should send ELEMENT message when typing in textarea", async () => {
+    await worker.evaluate(() => {
+      return self.db.clearEvents("ELEMENT");
+    });
+
+    page = await browser.newPage();
+    await page.goto(getServerUrl(), { waitUntil: "load" });
     await new Promise((resolve) => setTimeout(resolve, 500));
+
+    await page.focus("#textarea1-1");
+    await page.keyboard.press("a");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const messages = await worker.evaluate(() => self.messages);
 

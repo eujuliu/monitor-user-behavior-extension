@@ -42,6 +42,7 @@ function getPageInfo() {
 function getElementInfo(element, eventType, eventId) {
   const rect = element.getBoundingClientRect();
   const style = window.getComputedStyle(element);
+  const elementId = getElementId(element);
 
   return {
     x: rect.left + window.scrollX,
@@ -51,6 +52,7 @@ function getElementInfo(element, eventType, eventId) {
     tag: element.tagName.toLowerCase(),
     textColor: style.color,
     text: element.innerText || element.value || "",
+    elementId,
     page: getPageInfo(),
     timestamp: Date.now(),
     eventId,
@@ -76,11 +78,22 @@ function sendMessage(id, data) {
   chrome.runtime.sendMessage({ id, data });
 }
 
+async function checkElementExists(elementId) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { type: "CHECK_ELEMENT", elementId },
+      (response) => {
+        console.debug("CHECKED ELEMENT EXISTENCE");
+        resolve(response && response.exists);
+      },
+    );
+  });
+}
+
 let timestamp;
 let clickId;
 let keyTimestamp;
 let keyId;
-let lastKeypressElement;
 let active = false;
 
 let scrollTimeout;
@@ -94,6 +107,13 @@ let mouseTraceId;
 let mouseTraceTimestamp;
 let mouseTracePoints = [];
 let lastMousePoint = null;
+
+function getElementId(element) {
+  const page = getPageInfo();
+  const rect = element.getBoundingClientRect();
+  const text = (element.innerText || element.value || "").substring(0, 50);
+  return `${page.domain}${page.route}:${element.tagName.toLowerCase()}:${Math.round(rect.width)}:${Math.round(rect.height)}:${text}`;
+}
 
 function mousedown(event) {
   const page = getPageInfo();
@@ -112,10 +132,16 @@ function mousedown(event) {
   const clickableElement = getClickableElement(event.target);
 
   if (clickableElement) {
-    sendMessage(
-      "ELEMENT",
-      getElementInfo(clickableElement, "MOUSEPRESS", clickId),
-    );
+    const currentElementId = getElementId(clickableElement);
+    
+    checkElementExists(currentElementId).then((exists) => {
+      if (!exists) {
+        sendMessage(
+          "ELEMENT",
+          getElementInfo(clickableElement, "MOUSEPRESS", clickId),
+        );
+      }
+    });
   }
 }
 
@@ -217,10 +243,13 @@ function keydown(event) {
     id: keyId,
   });
 
-  if (lastKeypressElement !== target) {
-    lastKeypressElement = target;
-    sendMessage("ELEMENT", getElementInfo(target, "KEYPRESS", keyId));
-  }
+  const currentElementId = getElementId(target);
+
+  checkElementExists(currentElementId).then((exists) => {
+    if (!exists) {
+      sendMessage("ELEMENT", getElementInfo(target, "KEYPRESS", keyId));
+    }
+  });
 }
 
 function keyup(event) {

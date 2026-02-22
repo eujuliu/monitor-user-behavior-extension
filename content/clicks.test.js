@@ -188,6 +188,10 @@ describe("MOUSE EVENTS", () => {
   });
 
   it("should send ELEMENT message when clicking on a button", async () => {
+    await worker.evaluate(() => {
+      return self.db.clearEvents("ELEMENT");
+    });
+
     page = await browser.newPage();
 
     await page.goto(getServerUrl(), { waitUntil: "load" });
@@ -195,7 +199,7 @@ describe("MOUSE EVENTS", () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     await page.click("#btn1-1");
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const messages = await worker.evaluate(() => self.messages);
 
@@ -211,9 +215,14 @@ describe("MOUSE EVENTS", () => {
     expect(elementMessage.data.height).toBeGreaterThan(0);
     expect(elementMessage.data.event).toBe("MOUSEPRESS");
     expect(elementMessage.data.eventId).toBeDefined();
+    expect(elementMessage.data.elementId).toBeDefined();
   });
 
   it("should send ELEMENT message when clicking on an input", async () => {
+    await worker.evaluate(() => {
+      return self.db.clearEvents("ELEMENT");
+    });
+
     page = await browser.newPage();
 
     await page.goto(getServerUrl(), { waitUntil: "load" });
@@ -221,7 +230,7 @@ describe("MOUSE EVENTS", () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     await page.click("#input1-1");
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const messages = await worker.evaluate(() => self.messages);
 
@@ -235,6 +244,10 @@ describe("MOUSE EVENTS", () => {
   });
 
   it("should send ELEMENT message when clicking on a link", async () => {
+    await worker.evaluate(() => {
+      return self.db.clearEvents("ELEMENT");
+    });
+
     page = await browser.newPage();
 
     await page.goto(getServerUrl(), { waitUntil: "load" });
@@ -242,7 +255,7 @@ describe("MOUSE EVENTS", () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     await page.click("#link1-1");
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const messages = await worker.evaluate(() => self.messages);
 
@@ -257,6 +270,10 @@ describe("MOUSE EVENTS", () => {
   });
 
   it("should send ELEMENT message when clicking on a textarea", async () => {
+    await worker.evaluate(() => {
+      return self.db.clearEvents("ELEMENT");
+    });
+
     page = await browser.newPage();
 
     await page.goto(getServerUrl(), { waitUntil: "load" });
@@ -264,7 +281,7 @@ describe("MOUSE EVENTS", () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     await page.click("#textarea1-1");
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const messages = await worker.evaluate(() => self.messages);
 

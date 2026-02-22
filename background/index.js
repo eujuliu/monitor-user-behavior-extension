@@ -60,7 +60,7 @@ function createDatabase() {
       const record = {
         id:
           data.id ||
-          `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          `${Date.now()}${Math.random().toString(36).substring(2, 9)}`,
         data,
         createdAt: Date.now(),
       };
@@ -127,6 +127,12 @@ function createDatabase() {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
+  }
+
+  async function findByElementId(elementId) {
+    const elements = await getAllEvents("ELEMENT");
+
+    return elements.find((el) => el.data && el.data.elementId === elementId);
   }
 
   async function queryEvents(eventId, predicate) {
@@ -199,6 +205,7 @@ function createDatabase() {
     saveEvent,
     getAllEvents,
     getEventById,
+    findByElementId,
     queryEvents,
     clearEvents,
     exportToJson,
@@ -212,7 +219,16 @@ self.db = db;
 
 db.scheduleWeeklyExport();
 
-chrome.runtime.onMessage.addListener((message) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "CHECK_ELEMENT") {
+    console.debug(`checking element ${message.elementId} existence!`);
+
+    db.findByElementId(message.elementId).then((result) => {
+      sendResponse({ exists: !!result });
+    });
+    return true;
+  }
+
   const eventId = message.id;
 
   if (eventId && STORES[eventId]) {
