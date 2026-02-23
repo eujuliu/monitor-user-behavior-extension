@@ -62,7 +62,7 @@ describe("KEYBOARD EVENTS", () => {
     const keydownMessage = messages.find((m) => m.id === "KEYDOWN");
 
     expect(keydownMessage).toBeDefined();
-    expect(keydownMessage.data.page).toBeDefined();
+    expect(keydownMessage.data.pageId).toBeDefined();
     expect(keydownMessage.data.timestamp).toBeDefined();
     expect(keydownMessage.data.id).toBeDefined();
   });
@@ -83,7 +83,7 @@ describe("KEYBOARD EVENTS", () => {
     const keyupMessage = messages.find((m) => m.id === "KEYUP");
 
     expect(keyupMessage).toBeDefined();
-    expect(keyupMessage.data.page).toBeDefined();
+    expect(keyupMessage.data.pageId).toBeDefined();
     expect(keyupMessage.data.timestamp).toBeDefined();
     expect(keyupMessage.data.id).toBeDefined();
     expect(keyupMessage.data.speed).toBeDefined();
@@ -159,7 +159,7 @@ describe("KEYBOARD EVENTS", () => {
       (m) => m.id === "ELEMENT" && m.data.event === "KEYPRESS",
     );
 
-    expect(keypressMessages.length).toBe(2);
+    expect(keypressMessages.length).toBe(3);
   });
 
   it("should send ELEMENT message when typing in textarea", async () => {

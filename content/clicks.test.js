@@ -68,7 +68,7 @@ describe("MOUSE EVENTS", () => {
     expect(clickMessage.data).toBeDefined();
     expect(clickMessage.data.x).toBe(clickX);
     expect(clickMessage.data.y).toBe(clickY);
-    expect(clickMessage.data.page).toBeDefined();
+    expect(clickMessage.data.pageId).toBeDefined();
     expect(clickMessage.data.timestamp).toBeDefined();
     expect(clickMessage.data.id).toBeDefined();
   });

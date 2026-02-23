@@ -1,34 +1,34 @@
-function toBase62(num) {
-  const chars =
-    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-  if (num === 0) return "0";
-
-  let result = "";
-  let n = Math.abs(num);
-
-  while (n > 0) {
-    result = chars[n % 62] + result;
-    n = Math.floor(n / 62);
+function stringToBigInt(str) {
+  let bigIntValue = 0n;
+  for (let i = 0; i < str.length; i++) {
+    bigIntValue = (bigIntValue << 8n) + BigInt(str.charCodeAt(i));
   }
+  return bigIntValue;
+}
 
+function toBase62(str) {
+  const alphabet =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+  let num = stringToBigInt(str);
+  let result = "";
+  if (num === 0n) return alphabet[0];
+  while (num > 0n) {
+    result = alphabet[Number(num % 62n)] + result;
+    num = num / 62n;
+  }
   return result;
 }
 
-function generateId(timestamp, domain, route) {
-  const normalizedDomain = domain.replace(/\./g, "_");
-  const normalizedRoute = route.replace(/\//g, "_") || "_";
+function generateId(timestamp) {
+  const normalizedDomain = page.domain.replace(/\./g, "_");
+  const normalizedRoute = page.route.replace(/\//g, "_") || "_";
   const baseString = `${normalizedDomain}_${normalizedRoute}`;
+  return `${timestamp}${toBase62(baseString)}`;
+}
 
-  let hash = 0;
-
-  for (let i = 0; i < baseString.length; i++) {
-    const char = baseString.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-
-  return `${timestamp}${toBase62(Math.abs(hash))}`;
+function generatePageId(route, domain) {
+  return `${domain}${route}`;
 }
 
 function getPageInfo() {
@@ -38,6 +38,9 @@ function getPageInfo() {
     title: document.title,
   };
 }
+
+const page = getPageInfo();
+const pageId = `${page.domain}${page.route}`;
 
 function getElementInfo(element, eventType, eventId) {
   const rect = element.getBoundingClientRect();
@@ -53,7 +56,7 @@ function getElementInfo(element, eventType, eventId) {
     textColor: style.color,
     text: element.innerText || element.value || "",
     elementId,
-    page: getPageInfo(),
+    pageId,
     timestamp: Date.now(),
     eventId,
     event: eventType,
@@ -68,14 +71,23 @@ function getClickableElement(element) {
     return element;
   }
 
-  return element.closest(
-    "button, a, input, textarea, select, label, [role='button']",
-  );
+  return element.closest(`${clickableTags.join(",")}, [role='button']`);
 }
 
 function sendMessage(id, data) {
   console.debug({ id, data });
   chrome.runtime.sendMessage({ id, data });
+}
+
+async function registerPage() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { type: "REGISTER_PAGE", pageId, page },
+      (response) => {
+        resolve(response && response.success);
+      },
+    );
+  });
 }
 
 async function checkElementExists(elementId) {
@@ -90,7 +102,7 @@ async function checkElementExists(elementId) {
   });
 }
 
-let timestamp;
+let mouseDownTimestamp;
 let clickId;
 let keyTimestamp;
 let keyId;
@@ -109,22 +121,20 @@ let mouseTracePoints = [];
 let lastMousePoint = null;
 
 function getElementId(element) {
-  const page = getPageInfo();
   const rect = element.getBoundingClientRect();
   const text = (element.innerText || element.value || "").substring(0, 50);
   return `${page.domain}${page.route}:${element.tagName.toLowerCase()}:${Math.round(rect.width)}:${Math.round(rect.height)}:${text}`;
 }
 
 function mousedown(event) {
-  const page = getPageInfo();
-
-  timestamp = Date.now();
-  clickId = generateId(timestamp, page.domain, page.route);
+  const timestamp = Date.now();
+  mouseDownTimestamp = timestamp;
+  clickId = generateId(timestamp);
 
   sendMessage("MOUSEDOWN", {
     x: event.pageX,
     y: event.pageY,
-    page,
+    pageId,
     timestamp,
     id: clickId,
   });
@@ -133,7 +143,7 @@ function mousedown(event) {
 
   if (clickableElement) {
     const currentElementId = getElementId(clickableElement);
-    
+
     checkElementExists(currentElementId).then((exists) => {
       if (!exists) {
         sendMessage(
@@ -146,39 +156,39 @@ function mousedown(event) {
 }
 
 function mouseup(event) {
-  if (!timestamp || !clickId) return;
+  if (!clickId) return;
 
-  const page = getPageInfo();
-  const mouseupTimestamp = Date.now();
+  const timestamp = Date.now();
 
   sendMessage("MOUSEUP", {
     x: event.pageX,
     y: event.pageY,
-    page,
+    pageId,
     timestamp,
     id: clickId,
-    speed: mouseupTimestamp - timestamp,
+    speed: timestamp - mouseDownTimestamp,
   });
 }
 
 function mousemove(event) {
-  const page = getPageInfo();
   const now = Date.now();
 
   if (!mouseTraceId) {
-    mouseTraceId = generateId(now, page.domain, page.route);
+    mouseTraceId = generateId(now);
     mouseTraceTimestamp = now;
     mouseTracePoints = [];
-    lastMousePoint = { x: event.pageX, y: event.pageY, timestamp: now };
+    lastMousePoint = now;
   }
 
-  const speed = lastMousePoint ? now - lastMousePoint.timestamp : 0;
+  const speed = lastMousePoint ? now - lastMousePoint : 0;
+
   mouseTracePoints.push({
     x: event.pageX,
     y: event.pageY,
     speed,
   });
-  lastMousePoint = { x: event.pageX, y: event.pageY, timestamp: now };
+
+  lastMousePoint = now;
 
   clearTimeout(mouseTraceTimeout);
 
@@ -191,7 +201,7 @@ function mousemove(event) {
       const avgSpeed = totalSpeed / mouseTracePoints.length;
 
       sendMessage("MOUSE_TRACE", {
-        page,
+        pageId,
         timestamp: now,
         start_time: mouseTraceTimestamp,
         end_time: Date.now(),
@@ -209,15 +219,13 @@ function mousemove(event) {
 }
 
 function click(event) {
-  if (!timestamp || !clickId) return;
-
-  const page = getPageInfo();
+  if (!clickId) return;
 
   sendMessage("CLICK", {
     x: event.pageX,
     y: event.pageY,
-    page,
-    timestamp,
+    pageId,
+    timestamp: Date.now(),
     id: clickId,
   });
 }
@@ -233,12 +241,11 @@ function keydown(event) {
 
   if (!isInputElement) return;
 
-  const page = getPageInfo();
   keyTimestamp = Date.now();
-  keyId = generateId(keyTimestamp, page.domain, page.route);
+  keyId = generateId(keyTimestamp);
 
   sendMessage("KEYDOWN", {
-    page,
+    pageId,
     timestamp: keyTimestamp,
     id: keyId,
   });
@@ -255,11 +262,10 @@ function keydown(event) {
 function keyup(event) {
   if (!keyTimestamp || !keyId) return;
 
-  const page = getPageInfo();
   const keyupTimestamp = Date.now();
 
   sendMessage("KEYUP", {
-    page,
+    pageId,
     timestamp: keyupTimestamp,
     id: keyId,
     speed: keyupTimestamp - keyTimestamp,
@@ -271,29 +277,29 @@ function keyup(event) {
 
 function scroll(event) {
   const currentY = window.scrollY;
-  const page = getPageInfo();
   const now = Date.now();
 
   if (!scrollId) {
     scrollStartY = currentY;
     scrollLastY = currentY;
     scrollTimestamp = now;
-    scrollId = generateId(scrollTimestamp, page.domain, page.route);
+    scrollId = generateId(scrollTimestamp);
   }
 
   scrollLastY = currentY;
 
   clearTimeout(scrollTimeout);
+
   scrollTimeout = setTimeout(() => {
     if (scrollId) {
       const distance = Math.abs(scrollLastY - scrollStartY);
       const direction = scrollLastY > scrollStartY ? "down" : "up";
 
       sendMessage("SCROLL", {
-        page,
+        pageId,
         timestamp: now,
         start_time: scrollTimestamp,
-        end_time: Date.now(),
+        end_time: now,
         start_y: scrollStartY,
         id: scrollId,
         distance,
@@ -301,9 +307,6 @@ function scroll(event) {
       });
 
       scrollId = null;
-      scrollStartY = null;
-      scrollLastY = null;
-      scrollTimestamp = null;
     }
   }, 150);
 }
@@ -311,9 +314,9 @@ function scroll(event) {
 function clearListeners() {
   if (!active) return;
 
-  document.removeEventListener("click", click, { capture: true });
-  document.removeEventListener("mousedown", mousedown, { capture: true });
-  document.removeEventListener("mouseup", mouseup, { capture: true });
+  document.removeEventListener("click", click);
+  document.removeEventListener("mousedown", mousedown);
+  document.removeEventListener("mouseup", mouseup);
   document.removeEventListener("mousemove", mousemove);
   document.removeEventListener("keydown", keydown);
   document.removeEventListener("keyup", keyup);
@@ -341,5 +344,6 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "START") addListeners();
 });
 
-addListeners();
-console.log("Initialized listeners");
+registerPage().then(() => {
+  addListeners();
+});

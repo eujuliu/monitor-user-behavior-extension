@@ -63,7 +63,7 @@ describe("MOUSE TRACE EVENTS", () => {
     const traceMessage = messages.find((m) => m.id === "MOUSE_TRACE");
 
     expect(traceMessage).toBeDefined();
-    expect(traceMessage.data.page).toBeDefined();
+    expect(traceMessage.data.pageId).toBeDefined();
     expect(traceMessage.data.timestamp).toBeDefined();
     expect(traceMessage.data.start_time).toBeDefined();
     expect(traceMessage.data.end_time).toBeDefined();
