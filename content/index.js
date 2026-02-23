@@ -323,6 +323,7 @@ function clearListeners() {
   document.removeEventListener("scroll", scroll);
 
   active = false;
+  console.log("all events are clean");
 }
 
 function addListeners() {
@@ -337,6 +338,7 @@ function addListeners() {
   document.addEventListener("scroll", scroll);
 
   active = true;
+  console.log("listeners started...");
 }
 
 chrome.runtime.onMessage.addListener((message) => {

@@ -2,10 +2,34 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<title>User Behavior</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>User Monitor</title>
+		<link rel="stylesheet" href="styles.css">
 	</head>
 	<body>
-		<h1>Hello World</h1>
+		<div class="popup">
+			<header class="popup__header">
+				<div class="tab-selector">
+					<button type="button" class="tab-selector__btn tab-selector__btn--active" data-tab="all">All</button>
+					<button type="button" class="tab-selector__btn" data-tab="current">Current</button>
+					<button type="button" class="tab-selector__btn" data-tab="exactly">Exactly</button>
+				</div>
+
+				<div class="toggle">
+					<input type="checkbox" id="enableToggle" class="toggle__input" checked>
+					<label for="enableToggle" class="toggle__label">
+						<span class="toggle__slider"></span>
+					</label>
+				</div>
+			</header>
+
+			<div class="page-selector popup__page-selector">
+				<label for="pageSelect" class="page-selector__label">Select Page:</label>
+				<select id="pageSelect" class="page-selector__select">
+					<option value="">Loading pages...</option>
+				</select>
+			</div>
+		</div>
+		<script src="script.js"></script>
 	</body>
 </html>

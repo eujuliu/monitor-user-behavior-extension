@@ -245,9 +245,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.action.setBadgeText({ text: "ON" });
     chrome.action.setBadgeBackgroundColor({ color: "#4CAF50" });
 
-    if (sender.tab && sender.tab.id) {
-      chrome.tabs.sendMessage(sender.tab.id, { type: "START" });
-    }
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id, { type: "START" });
+    });
+
     return;
   }
 
@@ -256,14 +257,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.action.setBadgeText({ text: "OFF" });
     chrome.action.setBadgeBackgroundColor({ color: "#f44336" });
 
-    if (sender.tab && sender.tab.id) {
-      chrome.tabs.sendMessage(sender.tab.id, { type: "CLEAR" });
-    }
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id, { type: "CLEAR" });
+    });
+
     return;
   }
 
   if (message.type === "REGISTER_PAGE") {
-    registerPage(message.pageId, { data: message.page })
+    registerPage(message.pageId, message.page)
       .then(() => {
         sendResponse({ success: true });
       })
