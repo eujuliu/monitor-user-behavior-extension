@@ -284,3 +284,76 @@ body {
   border-top: 1px solid #e0e0e0;
   margin: 12px 0;
 }
+
+.popup__logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.popup__logs-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.popup__logs-controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.popup__logs-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #333;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.popup__logs-list {
+  list-style: none;
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+.popup__logs-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 11px;
+}
+
+.popup__logs-item:last-child {
+  border-bottom: none;
+}
+
+.popup__logs-event {
+  font-weight: 600;
+  color: #2196F3;
+  min-width: 80px;
+}
+
+.popup__logs-time {
+  color: #666;
+  min-width: 60px;
+}
+
+.popup__logs-id,
+.popup__logs-page-id {
+  color: #999;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

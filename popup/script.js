@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const addCollectionBtn = document.getElementById("addCollectionBtn");
   const collectionItems = document.getElementById("collectionItems");
   const collectionError = document.getElementById("collectionError");
+  const logsLimit = document.getElementById("logsLimit");
+  const logsList = document.getElementById("logsList");
 
   let currentTab = "all";
   let isEnabled = true;
@@ -76,7 +78,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (
       !/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9.-]*[a-z0-9])?)+$/.test(
         domain,
-      ) && domain !== "localhost"
+      ) &&
+      domain !== "localhost"
     ) {
       return {
         valid: false,
@@ -186,6 +189,54 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
     });
   }
+
+  async function loadEventLogs() {
+    let pageId = null;
+
+    if (currentTab === "current") {
+      pageId = await getCurrentTabPageId();
+    } else if (currentTab === "exactly") {
+      pageId = pageSelect.value || null;
+    }
+
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        {
+          type: "GET_EVENT_LOGS",
+          tab: currentTab,
+          limit: logsLimit.value,
+          pageId,
+        },
+        (response) => {
+          resolve(response || []);
+        },
+      );
+    });
+  }
+
+  function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString();
+  }
+
+  async function renderLogs() {
+    const logs = await loadEventLogs();
+    logsList.innerHTML = "";
+
+    logs.forEach((log) => {
+      const li = document.createElement("li");
+      li.className = "popup__logs-item";
+      li.innerHTML = `
+        <span class="popup__logs-event">${log.event}</span>
+        <span class="popup__logs-time">${formatTime(log.createdAt)}</span>
+        <span class="popup__logs-id" title="${log.id}">${log.id}</span>
+        <span class="popup__logs-page-id" title="${log.pageId}">${log.pageId}</span>
+      `;
+      logsList.appendChild(li);
+    });
+  }
+
+  logsLimit.addEventListener("change", renderLogs);
 
   enableToggle.addEventListener("change", async () => {
     isEnabled = enableToggle.checked;
@@ -390,5 +441,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await populatePageSelect();
   await displayStats();
+  renderLogs();
   updateMonitoringState();
 });

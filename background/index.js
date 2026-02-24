@@ -384,6 +384,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === "GET_EVENT_LOGS") {
+    (async () => {
+      const clicks = await getAllEvents("CLICK");
+      const mouseups = await getAllEvents("MOUSEUP");
+      const traces = await getAllEvents("MOUSE_TRACE");
+      const keydowns = await getAllEvents("KEYDOWN");
+
+      let allEvents = [
+        ...clicks.map(c => ({ event: "CLICK", createdAt: c.data.timestamp, id: c.id, pageId: c.data.pageId })),
+        ...mouseups.map(m => ({ event: "MOUSEUP", createdAt: m.data.timestamp, id: m.id, pageId: m.data.pageId })),
+        ...traces.map(t => ({ event: "MOUSE_TRACE", createdAt: t.data.timestamp, id: t.id, pageId: t.data.pageId })),
+        ...keydowns.map(k => ({ event: "KEYDOWN", createdAt: k.data.timestamp, id: k.id, pageId: k.data.pageId })),
+      ];
+
+      allEvents.sort((a, b) => b.createdAt - a.createdAt);
+
+      if (message.tab === "current" && message.pageId) {
+        allEvents = allEvents.filter(e => e.pageId && message.pageId.includes(e.pageId));
+      }
+
+      if (message.tab === "exactly" && message.pageId) {
+        allEvents = allEvents.filter(e => e.pageId === message.pageId);
+      }
+
+      const limit = parseInt(message.limit);
+      if (limit && !isNaN(limit)) {
+        allEvents = allEvents.slice(0, limit);
+      }
+
+      sendResponse(allEvents);
+    })();
+    return true;
+  }
+
   if (message.type === "GET_STATS") {
     const { tab, pageId } = message;
 

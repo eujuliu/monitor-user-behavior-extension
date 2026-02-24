@@ -4,8 +4,10 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>User Monitor</title>
+
 		<link rel="stylesheet" href="styles.css">
 	</head>
+
 	<body>
 		<div class="popup">
 			<header class="popup__header">
@@ -30,6 +32,8 @@
 				</select>
 			</div>
 
+			<hr class="popup__divider">
+
 			<div class="popup__stats">
 				<div class="popup__stats-card">
 					<div class="popup__stats-label">Total Clicks</div>
@@ -48,6 +52,24 @@
 					<div class="popup__stats-value" id="mouseDistance">0px</div>
 				</div>
 			</div>
+
+			<hr class="popup__divider">
+
+			<div class="popup__logs-header">
+				<span class="popup__logs-title">Event Logs</span>
+
+				<div class="popup__logs-controls">
+					<select id="logsLimit" class="popup__logs-select">
+						<option value="10">10</option>
+						<option value="20">20</option>
+						<option value="40">40</option>
+						<option value="50">50</option>
+						<option value="all">All</option>
+					</select>
+				</div>
+			</div>
+
+			<ul class="popup__logs-list" id="logsList"></ul>
 
 			<hr class="popup__divider">
 
