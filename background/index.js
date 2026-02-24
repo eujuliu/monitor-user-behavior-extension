@@ -64,10 +64,10 @@ async function saveEvent(eventId, data) {
       id:
         data.id || `${Date.now()}${Math.random().toString(36).substring(2, 9)}`,
       data,
-      createdAt: Date.now(),
     };
 
     const request = store.add(record);
+
     request.onsuccess = () => resolve(record);
     request.onerror = () => reject(request.error);
   });
@@ -151,11 +151,8 @@ async function exportToJson(startDate, endDate) {
 
   for (const [eventKey, storeName] of Object.entries(STORES)) {
     const events = await getAllEvents(eventKey);
-    const filteredEvents = events.filter((event) => {
-      const createdAt = event.createdAt;
-      return createdAt >= startDate && createdAt <= endDate;
-    });
-    exportData[storeName] = filteredEvents;
+
+    exportData[storeName] = events;
   }
 
   const jsonString = JSON.stringify(exportData, null, 2);
