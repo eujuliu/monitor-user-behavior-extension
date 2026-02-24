@@ -388,7 +388,19 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "START") addListeners();
 });
 
+function checkAndSetInitialState() {
+  const currentPageId = pageId;
+  
+  chrome.runtime.sendMessage({ type: "CHECK_COLLECTION", pageId: currentPageId }, (response) => {
+    if (response && response.shouldCollect) {
+      addListeners();
+    } else {
+      clearListeners();
+    }
+  });
+}
+
 registerPage().then(() => {
-  addListeners();
+  checkAndSetInitialState();
   setupUrlChangeListener();
 });

@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (
       !/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9.-]*[a-z0-9])?)+$/.test(
         domain,
-      )
+      ) && domain !== "localhost"
     ) {
       return {
         valid: false,
