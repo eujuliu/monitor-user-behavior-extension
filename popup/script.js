@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   tabBtns.forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       tabBtns.forEach((b) => b.classList.remove("tab-selector__btn--active"));
 
       btn.classList.add("tab-selector__btn--active");
@@ -27,11 +27,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       savePreferences();
+      await displayStats();
     });
   });
 
-  pageSelect.addEventListener("change", () => {
+  pageSelect.addEventListener("change", async () => {
     savePreferences();
+    await displayStats();
   });
 
   function updateMonitoringState() {
@@ -84,20 +86,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  async function loadStats() {
+  async function getCurrentTabPageId() {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: "GET_STATS" }, (response) => {
-        if (response) {
-          resolve(response);
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          const url = new URL(tabs[0].url);
+          const pageId = `${url.hostname}${url.pathname}`;
+          resolve(pageId);
         } else {
-          resolve({
-            clicks: 0,
-            buttonClicks: 0,
-            avgDelay: 0,
-            mouseDistance: 0,
-          });
+          resolve(null);
         }
       });
+    });
+  }
+
+  async function loadStats() {
+    let pageId = null;
+
+    if (currentTab === "exactly") {
+      pageId = pageSelect.value || null;
+    } else if (currentTab === "current") {
+      pageId = await getCurrentTabPageId();
+    }
+
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { type: "GET_STATS", tab: currentTab, pageId },
+        (response) => {
+          if (response) {
+            resolve(response);
+          } else {
+            resolve({
+              clicks: 0,
+              buttonClicks: 0,
+              avgDelay: 0,
+              mouseDistance: 0,
+            });
+          }
+        },
+      );
     });
   }
 

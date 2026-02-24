@@ -323,13 +323,58 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "GET_STATS") {
-    chrome.storage.local.get({
-      totalClicks: 0,
-      buttonClicks: 0,
-      totalMouseDelay: 0,
-      mouseEvents: 0,
-      mouseMovementDistance: 0,
-    }).then((stats) => {
+    const { tab, pageId } = message;
+
+    const queryPageStats = async (targetPageId) => {
+      const clicks = await getAllEvents("CLICK");
+      const mouseups = await getAllEvents("MOUSEUP");
+      const mouseTraces = await getAllEvents("MOUSE_TRACE");
+
+      const pageClicks = clicks.filter(c => c.data.pageId === targetPageId);
+      const pageMouseups = mouseups.filter(m => m.data.pageId === targetPageId);
+      const pageMouseTraces = mouseTraces.filter(t => t.data.pageId === targetPageId);
+
+      const totalClicks = pageClicks.length;
+      const buttonClicks = pageClicks.filter(c => c.data.isButton).length;
+
+      const totalMouseDelay = pageMouseups.reduce((sum, m) => sum + (m.data.speed || 0), 0);
+      const mouseEvents = pageMouseups.length;
+
+      let mouseMovementDistance = 0;
+      for (const trace of pageMouseTraces) {
+        if (trace.data.points && trace.data.points.length > 1) {
+          for (let i = 1; i < trace.data.points.length; i++) {
+            const dx = trace.data.points[i].x - trace.data.points[i - 1].x;
+            const dy = trace.data.points[i].y - trace.data.points[i - 1].y;
+            mouseMovementDistance += Math.sqrt(dx * dx + dy * dy);
+          }
+        }
+      }
+
+      return { totalClicks, buttonClicks, totalMouseDelay, mouseEvents, mouseMovementDistance };
+    };
+
+    const getStatsForScope = async () => {
+      if (tab === "exactly" && pageId) {
+        return queryPageStats(pageId);
+      }
+
+      if (tab === "current" && pageId) {
+        return queryPageStats(pageId);
+      }
+
+      const baseStats = await chrome.storage.local.get({
+        totalClicks: 0,
+        buttonClicks: 0,
+        totalMouseDelay: 0,
+        mouseEvents: 0,
+        mouseMovementDistance: 0,
+      });
+
+      return baseStats;
+    };
+
+    getStatsForScope().then((stats) => {
       const avgDelay = stats.mouseEvents > 0
         ? Math.round(stats.totalMouseDelay / stats.mouseEvents)
         : 0;
