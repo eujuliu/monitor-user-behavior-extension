@@ -1,11 +1,191 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const enableToggle = document.getElementById("enableToggle");
-  const tabBtns = document.querySelectorAll(".tab-selector__btn");
+  const tabBtns = document.querySelectorAll(".popup__tab-btn");
   const pageSelector = document.querySelector(".popup__page-selector");
   const pageSelect = document.getElementById("pageSelect");
+  const collectionTabs = document.querySelectorAll(".popup__collection-tab");
+  const collectionInput = document.getElementById("collectionInput");
+  const addCollectionBtn = document.getElementById("addCollectionBtn");
+  const collectionItems = document.getElementById("collectionItems");
+  const collectionError = document.getElementById("collectionError");
 
   let currentTab = "all";
   let isEnabled = true;
+  let collectionMode = "inverted";
+  let collectionList = [];
+
+  collectionTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      collectionTabs.forEach((t) =>
+        t.classList.remove("popup__collection-tab--active"),
+      );
+
+      tab.classList.add("popup__collection-tab--active");
+
+      collectionMode = tab.dataset.collection;
+
+      saveCollectionList();
+      renderCollectionItems();
+    });
+  });
+
+  function validateAndSanitize(input) {
+    const url = input.trim().toLowerCase();
+
+    if (!url) {
+      return { valid: false, error: "Enter a domain (e.g., youtube.com)" };
+    }
+
+    let domain = url;
+    let path = "";
+
+    if (url.includes("://")) {
+      try {
+        const urlObj = new URL(url);
+        domain = urlObj.hostname;
+        path = urlObj.pathname + urlObj.search;
+      } catch (e) {
+        return { valid: false, error: "Invalid URL format" };
+      }
+    } else if (url.includes("/") || url.includes("?")) {
+      const firstSlash = url.indexOf("/");
+      const firstQuestion = url.indexOf("?");
+      const splitPoint = firstQuestion === -1 ? url.length : firstQuestion;
+      const firstPart = url.substring(0, splitPoint);
+
+      if (
+        firstSlash !== -1 &&
+        (firstQuestion === -1 || firstSlash < firstQuestion)
+      ) {
+        domain = url.substring(0, firstSlash);
+        path = url.substring(firstSlash);
+      } else {
+        domain = firstPart;
+        path = "";
+      }
+    }
+
+    if (domain.startsWith("www.")) {
+      domain = domain.slice(4);
+    }
+
+    if (domain.startsWith(".") || domain.endsWith(".")) {
+      return { valid: false, error: "Domain cannot start or end with a dot" };
+    }
+
+    if (
+      !/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9.-]*[a-z0-9])?)+$/.test(
+        domain,
+      )
+    ) {
+      return {
+        valid: false,
+        error: "Invalid domain format. Use: example.com, sub.example.com",
+      };
+    }
+
+    if (domain.includes("..")) {
+      return { valid: false, error: "Domain cannot have consecutive dots" };
+    }
+
+    const result = domain + path;
+    return { valid: true, value: result };
+  }
+
+  function showError(message) {
+    collectionError.textContent = message;
+    collectionError.style.display = "block";
+  }
+
+  function hideError() {
+    collectionError.textContent = "";
+    collectionError.style.display = "none";
+  }
+
+  collectionInput.addEventListener("input", () => {
+    const rawInput = collectionInput.value.trim();
+
+    if (!rawInput) {
+      hideError();
+      return;
+    }
+
+    const result = validateAndSanitize(rawInput);
+
+    if (!result.valid) {
+      showError(result.error);
+    } else {
+      hideError();
+    }
+  });
+
+  addCollectionBtn.addEventListener("click", () => {
+    const rawInput = collectionInput.value.trim();
+    const result = validateAndSanitize(rawInput);
+
+    if (result.valid && !collectionList.includes(result.value)) {
+      collectionList.push(result.value);
+      collectionInput.value = "";
+
+      hideError();
+      saveCollectionList();
+      renderCollectionItems();
+    } else if (result.valid && collectionList.includes(result.value)) {
+      showError("Domain already in list");
+    } else if (!result.valid && rawInput) {
+      showError(result.error);
+    }
+  });
+
+  collectionInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      addCollectionBtn.click();
+    }
+  });
+
+  function renderCollectionItems() {
+    collectionItems.innerHTML = "";
+
+    collectionList.forEach((pattern, index) => {
+      const div = document.createElement("div");
+
+      div.className = "popup__collection-item";
+      div.innerHTML = `
+        <span class="popup__collection-item-pattern">${pattern}</span>
+        <button class="popup__collection-item-delete" data-index="${index}">&times;</button>
+      `;
+
+      const deleteBtn = div.querySelector(".popup__collection-item-delete");
+
+      deleteBtn.addEventListener("click", () => {
+        collectionList.splice(index, 1);
+        saveCollectionList();
+        renderCollectionItems();
+      });
+
+      collectionItems.appendChild(div);
+    });
+  }
+
+  async function saveCollectionList() {
+    await chrome.storage.local.set({ collectionList, collectionMode });
+
+    chrome.runtime.sendMessage({ type: "UPDATE_COLLECTION" });
+  }
+
+  async function loadCollectionList() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(
+        ["collectionList", "collectionMode"],
+        (result) => {
+          resolve({
+            list: result.collectionList || [],
+            mode: result.collectionMode || "inverted",
+          });
+        },
+      );
+    });
+  }
 
   enableToggle.addEventListener("change", async () => {
     isEnabled = enableToggle.checked;
@@ -14,9 +194,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   tabBtns.forEach((btn) => {
     btn.addEventListener("click", async () => {
-      tabBtns.forEach((b) => b.classList.remove("tab-selector__btn--active"));
+      tabBtns.forEach((b) => b.classList.remove("popup__tab-btn--active"));
 
-      btn.classList.add("tab-selector__btn--active");
+      btn.classList.add("popup__tab-btn--active");
 
       currentTab = btn.dataset.tab;
 
@@ -158,7 +338,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     return new Promise((resolve) => {
       chrome.storage.local.get(["monitorPreferences"], (result) => {
         const prefs = result.monitorPreferences;
-
         resolve(prefs && prefs.pageId ? prefs.pageId : "");
       });
     });
@@ -171,6 +350,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     });
   }
+
+  const collectionData = await loadCollectionList();
+  collectionList = collectionData.list;
+  collectionMode = collectionData.mode;
+
+  collectionTabs.forEach((tab) => {
+    if (tab.dataset.collection === collectionMode) {
+      tab.classList.add("popup__collection-tab--active");
+    } else {
+      tab.classList.remove("popup__collection-tab--active");
+    }
+  });
+
+  renderCollectionItems();
 
   const prefs = await loadPreferences();
   currentTab = prefs.tab || "all";
@@ -185,9 +378,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   tabBtns.forEach((btn) => {
     if (btn.dataset.tab === currentTab) {
-      btn.classList.add("tab-selector__btn--active");
+      btn.classList.add("popup__tab-btn--active");
     } else {
-      btn.classList.remove("tab-selector__btn--active");
+      btn.classList.remove("popup__tab-btn--active");
     }
   });
 

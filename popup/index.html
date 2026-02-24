@@ -9,45 +9,62 @@
 	<body>
 		<div class="popup">
 			<header class="popup__header">
-				<div class="tab-selector">
-					<button type="button" class="tab-selector__btn tab-selector__btn--active" data-tab="all">All</button>
-					<button type="button" class="tab-selector__btn" data-tab="current">Current</button>
-					<button type="button" class="tab-selector__btn" data-tab="exactly">Exactly</button>
+				<div class="popup__tab-selector">
+					<button type="button" class="popup__tab-btn popup__tab-btn--active" data-tab="all">All</button>
+					<button type="button" class="popup__tab-btn" data-tab="current">Current</button>
+					<button type="button" class="popup__tab-btn" data-tab="exactly">Exactly</button>
 				</div>
 
-				<div class="toggle">
-					<input type="checkbox" id="enableToggle" class="toggle__input" checked>
-					<label for="enableToggle" class="toggle__label">
-						<span class="toggle__slider"></span>
+				<div class="popup__toggle">
+					<input type="checkbox" id="enableToggle" class="popup__toggle-input" checked>
+					<label for="enableToggle" class="popup__toggle-label">
+						<span class="popup__toggle-slider"></span>
 					</label>
 				</div>
 			</header>
 
-			<div class="page-selector popup__page-selector">
-				<label for="pageSelect" class="page-selector__label">Select Page:</label>
-				<select id="pageSelect" class="page-selector__select">
+			<div class="popup__page-selector">
+				<label for="pageSelect" class="popup__page-label">Select Page:</label>
+				<select id="pageSelect" class="popup__page-select">
 					<option value="">Loading pages...</option>
 				</select>
 			</div>
 
-			<div class="stats">
-				<div class="stats__card">
-					<div class="stats__label">Total Clicks</div>
-					<div class="stats__value" id="clicksCount">0</div>
+			<div class="popup__stats">
+				<div class="popup__stats-card">
+					<div class="popup__stats-label">Total Clicks</div>
+					<div class="popup__stats-value" id="clicksCount">0</div>
 				</div>
-				<div class="stats__card">
-					<div class="stats__label">Button Clicks</div>
-					<div class="stats__value" id="buttonClicks">0</div>
+				<div class="popup__stats-card">
+					<div class="popup__stats-label">Button Clicks</div>
+					<div class="popup__stats-value" id="buttonClicks">0</div>
 				</div>
-				<div class="stats__card">
-					<div class="stats__label">Avg Delay</div>
-					<div class="stats__value" id="avgDelay">0ms</div>
+				<div class="popup__stats-card">
+					<div class="popup__stats-label">Avg Delay</div>
+					<div class="popup__stats-value" id="avgDelay">0ms</div>
 				</div>
-				<div class="stats__card">
-					<div class="stats__label">Mouse Distance</div>
-					<div class="stats__value" id="mouseDistance">0px</div>
+				<div class="popup__stats-card">
+					<div class="popup__stats-label">Mouse Distance</div>
+					<div class="popup__stats-value" id="mouseDistance">0px</div>
 				</div>
 			</div>
+
+			<hr class="popup__divider">
+
+			<div class="popup__collection-header">
+				<div class="popup__collection-tabs">
+					<button type="button" class="popup__collection-tab popup__collection-tab--active" data-collection="inverted">Inverted</button>
+					<button type="button" class="popup__collection-tab" data-collection="not-inverted">Not Inverted</button>
+				</div>
+			</div>
+
+			<div class="popup__collection-input">
+				<input type="text" id="collectionInput" class="popup__collection-field" placeholder="e.g., youtube.com">
+				<button type="button" class="popup__collection-btn" id="addCollectionBtn">Add</button>
+			</div>
+			<div class="popup__collection-error" id="collectionError"></div>
+
+			<div class="popup__collection-items" id="collectionItems"></div>
 		</div>
 		<script src="script.js"></script>
 	</body>

@@ -82,7 +82,45 @@ async function updateStats(eventId, data) {
   await chrome.storage.local.set(stats);
 }
 
+async function shouldCollectPage(pageId) {
+  const result = await chrome.storage.local.get([
+    "collectionList",
+    "collectionMode",
+  ]);
+  const list = result.collectionList || [];
+  const mode = result.collectionMode || "inverted";
+
+  if (list.length === 0) {
+    return true;
+  }
+
+  const matchesList = list.some((pattern) => pageId.includes(pattern));
+
+  if (mode === "inverted") {
+    return matchesList;
+  } else {
+    return !matchesList;
+  }
+}
+
+async function updatePageCollectionState(tabId, pageId) {
+  const shouldCollect = await shouldCollectPage(pageId);
+
+  if (shouldCollect) {
+    chrome.tabs.sendMessage(tabId, { type: "START" });
+  } else {
+    chrome.tabs.sendMessage(tabId, { type: "CLEAR" });
+  }
+}
+
 async function saveEvent(eventId, data) {
+  if (data.pageId) {
+    const shouldCollect = await shouldCollectPage(data.pageId);
+    if (!shouldCollect) {
+      return;
+    }
+  }
+
   const database = await openDB();
   const storeName = STORES[eventId];
 
@@ -301,6 +339,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "REGISTER_PAGE") {
     registerPage(message.pageId, message.page)
       .then(() => {
+        updatePageCollectionState(sender.tab.id, message.pageId);
         sendResponse({ success: true });
       })
       .catch((error) => {
@@ -308,6 +347,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: false });
       });
     return true;
+  }
+
+  if (message.type === "UPDATE_COLLECTION") {
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        if (tab.url && tab.url.startsWith("http")) {
+          try {
+            const url = new URL(tab.url);
+            const pageId = `${url.hostname}${url.pathname}`;
+
+            updatePageCollectionState(tab.id, pageId);
+          } catch (e) {}
+        }
+      });
+    });
+    return;
   }
 
   if (message.type === "GET_PAGES") {
@@ -322,6 +377,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === "CHECK_COLLECTION") {
+    shouldCollectPage(message.pageId).then((shouldCollect) => {
+      sendResponse({ shouldCollect });
+    });
+    return true;
+  }
+
   if (message.type === "GET_STATS") {
     const { tab, pageId } = message;
 
@@ -330,14 +392,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const mouseups = await getAllEvents("MOUSEUP");
       const mouseTraces = await getAllEvents("MOUSE_TRACE");
 
-      const pageClicks = clicks.filter(c => c.data.pageId === targetPageId);
-      const pageMouseups = mouseups.filter(m => m.data.pageId === targetPageId);
-      const pageMouseTraces = mouseTraces.filter(t => t.data.pageId === targetPageId);
+      const pageClicks = clicks.filter((c) => c.data.pageId === targetPageId);
+      const pageMouseups = mouseups.filter(
+        (m) => m.data.pageId === targetPageId,
+      );
+      const pageMouseTraces = mouseTraces.filter(
+        (t) => t.data.pageId === targetPageId,
+      );
 
       const totalClicks = pageClicks.length;
-      const buttonClicks = pageClicks.filter(c => c.data.isButton).length;
+      const buttonClicks = pageClicks.filter((c) => c.data.isButton).length;
 
-      const totalMouseDelay = pageMouseups.reduce((sum, m) => sum + (m.data.speed || 0), 0);
+      const totalMouseDelay = pageMouseups.reduce(
+        (sum, m) => sum + (m.data.speed || 0),
+        0,
+      );
       const mouseEvents = pageMouseups.length;
 
       let mouseMovementDistance = 0;
@@ -351,7 +420,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       }
 
-      return { totalClicks, buttonClicks, totalMouseDelay, mouseEvents, mouseMovementDistance };
+      return {
+        totalClicks,
+        buttonClicks,
+        totalMouseDelay,
+        mouseEvents,
+        mouseMovementDistance,
+      };
     };
 
     const getStatsForScope = async () => {
@@ -375,9 +450,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     };
 
     getStatsForScope().then((stats) => {
-      const avgDelay = stats.mouseEvents > 0
-        ? Math.round(stats.totalMouseDelay / stats.mouseEvents)
-        : 0;
+      const avgDelay =
+        stats.mouseEvents > 0
+          ? Math.round(stats.totalMouseDelay / stats.mouseEvents)
+          : 0;
 
       sendResponse({
         clicks: stats.totalClicks,

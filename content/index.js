@@ -40,7 +40,7 @@ function getPageInfo() {
 }
 
 const page = getPageInfo();
-const pageId = `${page.domain}${page.route}`;
+let pageId = `${page.domain}${page.route}`;
 
 function getElementInfo(element, eventType, eventId) {
   const rect = element.getBoundingClientRect();
@@ -171,7 +171,7 @@ function mouseup(event) {
 }
 
 function mousemove(event) {
-  const now = Date.now;
+  const now = Date.now();
 
   if (!mouseTraceId) {
     mouseTraceId = generateId(now);
@@ -349,6 +349,40 @@ function addListeners() {
   console.log("listeners started...");
 }
 
+function checkCollectionAndUpdate() {
+  chrome.runtime.sendMessage(
+    { type: "CHECK_COLLECTION", pageId },
+    (response) => {
+      if (response && response.shouldCollect) {
+        addListeners();
+      } else {
+        clearListeners();
+      }
+    },
+  );
+}
+
+function setupUrlChangeListener() {
+  let lastUrl = location.href;
+
+  function wrapRegisterPage() {
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      page.route = window.location.pathname;
+      pageId = `${page.domain}${page.route}`;
+
+      registerPage();
+      checkCollectionAndUpdate();
+    }
+  }
+
+  const observer = new MutationObserver(wrapRegisterPage);
+
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  window.addEventListener("popstate", wrapRegisterPage);
+}
+
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "CLEAR") clearListeners();
   if (message.type === "START") addListeners();
@@ -356,4 +390,5 @@ chrome.runtime.onMessage.addListener((message) => {
 
 registerPage().then(() => {
   addListeners();
+  setupUrlChangeListener();
 });
