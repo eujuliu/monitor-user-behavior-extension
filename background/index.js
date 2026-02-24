@@ -48,6 +48,40 @@ function getStore(db, storeName, mode = "readonly") {
   return db.transaction([storeName], mode).objectStore(storeName);
 }
 
+async function updateStats(eventId, data) {
+  const stats = await chrome.storage.local.get({
+    totalClicks: 0,
+    buttonClicks: 0,
+    totalMouseDelay: 0,
+    mouseEvents: 0,
+    mouseMovementDistance: 0,
+  });
+
+  if (eventId === "CLICK") {
+    stats.totalClicks++;
+    if (data.isButton) {
+      stats.buttonClicks++;
+    }
+  }
+
+  if (eventId === "MOUSEUP" && data.speed !== undefined) {
+    stats.totalMouseDelay += data.speed;
+    stats.mouseEvents++;
+  }
+
+  if (eventId === "MOUSE_TRACE" && data.points && data.points.length > 1) {
+    let distance = 0;
+    for (let i = 1; i < data.points.length; i++) {
+      const dx = data.points[i].x - data.points[i - 1].x;
+      const dy = data.points[i].y - data.points[i - 1].y;
+      distance += Math.sqrt(dx * dx + dy * dy);
+    }
+    stats.mouseMovementDistance += distance;
+  }
+
+  await chrome.storage.local.set(stats);
+}
+
 async function saveEvent(eventId, data) {
   const database = await openDB();
   const storeName = STORES[eventId];
@@ -56,6 +90,8 @@ async function saveEvent(eventId, data) {
     console.warn(`Unknown event type: ${eventId}`);
     return;
   }
+
+  await updateStats(eventId, data);
 
   return new Promise((resolve, reject) => {
     const store = getStore(database, storeName, "readwrite");
@@ -199,6 +235,7 @@ async function scheduleWeeklyExport() {
 
 async function registerPage(pageId, pageData) {
   const existingPage = await getPageById(pageId);
+
   if (existingPage) {
     return existingPage;
   }
@@ -282,6 +319,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === "GET_STATE") {
     sendResponse({ isEnabled: isMonitoringEnabled });
+    return true;
+  }
+
+  if (message.type === "GET_STATS") {
+    chrome.storage.local.get({
+      totalClicks: 0,
+      buttonClicks: 0,
+      totalMouseDelay: 0,
+      mouseEvents: 0,
+      mouseMovementDistance: 0,
+    }).then((stats) => {
+      const avgDelay = stats.mouseEvents > 0
+        ? Math.round(stats.totalMouseDelay / stats.mouseEvents)
+        : 0;
+
+      sendResponse({
+        clicks: stats.totalClicks,
+        buttonClicks: stats.buttonClicks,
+        avgDelay: avgDelay,
+        mouseDistance: Math.round(stats.mouseMovementDistance),
+      });
+    });
     return true;
   }
 

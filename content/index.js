@@ -171,7 +171,7 @@ function mouseup(event) {
 }
 
 function mousemove(event) {
-  const now = Date.now();
+  const now = Date.now;
 
   if (!mouseTraceId) {
     mouseTraceId = generateId(now);
@@ -221,12 +221,20 @@ function mousemove(event) {
 function click(event) {
   if (!clickId) return;
 
+  const clickableElement = getClickableElement(event.target);
+  const isButton =
+    clickableElement &&
+    (clickableElement.tagName.toLowerCase() === "button" ||
+      clickableElement.type === "button" ||
+      clickableElement.type === "submit");
+
   sendMessage("CLICK", {
     x: event.pageX,
     y: event.pageY,
     pageId,
     timestamp: Date.now(),
     id: clickId,
+    isButton: !!isButton,
   });
 }
 

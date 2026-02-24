@@ -84,6 +84,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  async function loadStats() {
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: "GET_STATS" }, (response) => {
+        if (response) {
+          resolve(response);
+        } else {
+          resolve({
+            clicks: 0,
+            buttonClicks: 0,
+            avgDelay: 0,
+            mouseDistance: 0,
+          });
+        }
+      });
+    });
+  }
+
+  async function displayStats() {
+    const stats = await loadStats();
+    document.getElementById("clicksCount").textContent = stats.clicks;
+    document.getElementById("buttonClicks").textContent = stats.buttonClicks;
+    document.getElementById("avgDelay").textContent = `${stats.avgDelay}ms`;
+    document.getElementById("mouseDistance").textContent =
+      `${stats.mouseDistance}px`;
+  }
+
   function savePreferences() {
     const prefs = {
       tab: currentTab,
@@ -105,6 +131,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return new Promise((resolve) => {
       chrome.storage.local.get(["monitorPreferences"], (result) => {
         const prefs = result.monitorPreferences;
+
         resolve(prefs && prefs.pageId ? prefs.pageId : "");
       });
     });
@@ -142,5 +169,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   await populatePageSelect();
+  await displayStats();
   updateMonitoringState();
 });
