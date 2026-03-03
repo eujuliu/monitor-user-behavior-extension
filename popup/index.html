@@ -2,92 +2,10 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>User Monitor</title>
-
-		<link rel="stylesheet" href="styles.css">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title></title>
+		<link href="style.css" rel="stylesheet">
 	</head>
-
 	<body>
-		<div class="popup">
-			<header class="popup__header">
-				<div class="popup__tab-selector">
-					<button type="button" class="popup__tab-btn popup__tab-btn--active" data-tab="all">All</button>
-					<button type="button" class="popup__tab-btn" data-tab="current">Current</button>
-					<button type="button" class="popup__tab-btn" data-tab="exactly">Exactly</button>
-				</div>
-
-				<div class="popup__toggle">
-					<input type="checkbox" id="enableToggle" class="popup__toggle-input" checked>
-					<label for="enableToggle" class="popup__toggle-label">
-						<span class="popup__toggle-slider"></span>
-					</label>
-				</div>
-			</header>
-
-			<div class="popup__page-selector">
-				<label for="pageSelect" class="popup__page-label">Select Page:</label>
-				<select id="pageSelect" class="popup__page-select">
-					<option value="">Loading pages...</option>
-				</select>
-			</div>
-
-			<hr class="popup__divider">
-
-			<div class="popup__stats">
-				<div class="popup__stats-card">
-					<div class="popup__stats-label">Total Clicks</div>
-					<div class="popup__stats-value" id="clicksCount">0</div>
-				</div>
-				<div class="popup__stats-card">
-					<div class="popup__stats-label">Button Clicks</div>
-					<div class="popup__stats-value" id="buttonClicks">0</div>
-				</div>
-				<div class="popup__stats-card">
-					<div class="popup__stats-label">Avg Delay</div>
-					<div class="popup__stats-value" id="avgDelay">0ms</div>
-				</div>
-				<div class="popup__stats-card">
-					<div class="popup__stats-label">Mouse Distance</div>
-					<div class="popup__stats-value" id="mouseDistance">0px</div>
-				</div>
-			</div>
-
-			<hr class="popup__divider">
-
-			<div class="popup__logs-header">
-				<span class="popup__logs-title">Event Logs</span>
-
-				<div class="popup__logs-controls">
-					<select id="logsLimit" class="popup__logs-select">
-						<option value="10">10</option>
-						<option value="20">20</option>
-						<option value="40">40</option>
-						<option value="50">50</option>
-						<option value="all">All</option>
-					</select>
-				</div>
-			</div>
-
-			<ul class="popup__logs-list" id="logsList"></ul>
-
-			<hr class="popup__divider">
-
-			<div class="popup__collection-header">
-				<div class="popup__collection-tabs">
-					<button type="button" class="popup__collection-tab popup__collection-tab--active" data-collection="inverted">Inverted</button>
-					<button type="button" class="popup__collection-tab" data-collection="not-inverted">Not Inverted</button>
-				</div>
-			</div>
-
-			<div class="popup__collection-input">
-				<input type="text" id="collectionInput" class="popup__collection-field" placeholder="e.g., youtube.com">
-				<button type="button" class="popup__collection-btn" id="addCollectionBtn">Add</button>
-			</div>
-			<div class="popup__collection-error" id="collectionError"></div>
-
-			<div class="popup__collection-items" id="collectionItems"></div>
-		</div>
-		<script src="script.js"></script>
 	</body>
 </html>
